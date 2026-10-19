@@ -136,31 +136,33 @@ Für eine persönliche Installation kann optional ein festes Konto über lokale 
 
 ## Rechtliche Einordnung
 
-Open Source bedeutet nur, dass der jeweilige veröffentlichte Quellcode unter seiner Lizenz genutzt werden darf. Der Dienst `virtueller-stundenplan.org` selbst ist dadurch nicht Open Source. Auch F-Droid kennzeichnet den bestehenden Better-Stundenplan-Client als abhängig von einem nicht freien Netzdienst.
+Die Lizenz des veröffentlichten Quellcodes und die Rechte zum Zugriff auf den fremden Dienst sind getrennt zu beurteilen. Die MIT-Lizenz dieses Projekts erteilt keine Nutzungsrechte am Originalportal, an dessen Daten oder an fremden Marken und Inhalten.
 
-### Was voraussichtlich möglich ist
+### Quellcode und Kontozugriff
 
-- eigenen, neu geschriebenen Client unter einer eigenen Open-Source-Lizenz veröffentlichen
-- MIT-lizenzierten Code aus `LarvenStein/better-stundenplan` übernehmen, wenn Copyright- und Lizenzhinweis erhalten bleiben
-- mit eigenen Zugangsdaten die für das Konto vorgesehenen Ansichten abrufen
+- Eigener Quellcode kann unter einer passenden eigenen Lizenz veröffentlicht werden, soweit daran die erforderlichen Rechte bestehen.
+- Bei übernommenem Fremdcode gelten dessen Lizenz und die jeweiligen Pflichten; die Lizenz von Klarstunde ersetzt sie nicht.
+- Ein berechtigtes Konto belegt nicht automatisch, dass automatisierte Abrufe oder alternative Clients erlaubt sind. Dafür sind die geltenden Bedingungen und die konkrete Nutzung getrennt zu prüfen.
 
 Klarstunde übernimmt derzeit keinen Quellcode des Flutter-Projekts; es wurde nur zur Schnittstellenanalyse betrachtet.
 
-### Was vor Veröffentlichung geklärt werden sollte
+### Was vor Live-Betrieb oder einem Betrieb für andere zu klären ist
 
-1. **Erlaubnis und Nutzungsbedingungen:** Der Betreiber sollte die Nutzung durch alternative Clients und automatisierte HTML-Abrufe schriftlich bestätigen. Eine öffentlich dokumentierte API oder entsprechende Nutzungsbedingungen waren bei der Prüfung nicht auffindbar.
+1. **Erlaubnis und Nutzungsbedingungen:** Die geltenden Vorgaben des Dienstbetreibers und der Schule prüfen. Bei Unklarheit die Nutzung durch alternative Clients und automatisierte HTML-Abrufe vorab abstimmen und die Klärung dokumentieren. Diese Implementierung nutzt keine für Klarstunde zugesicherte API; eine Freigabe wird nicht behauptet.
 2. **Marken:** Name, Logo und Gestaltung des Fremddienstes nicht übernehmen. „Klarstunde“ vor größerer Veröffentlichung als Marke prüfen.
 3. **Urheber- und Datenbankrechte:** Keine Bilder, Texte, CSS- oder HTML-Bestandteile des Fremddienstes kopieren. Nur die für das eigene Konto ausgelieferten Fakten verarbeiten.
-4. **Datenschutz:** Bei rein lokaler Nutzung bleiben Risiken klein. Wer die App hostet oder an Dritte ausgibt, verarbeitet Schul-, Fehlzeiten- und eventuell Gesundheitsdaten und braucht eine passende Rechtsgrundlage, Datenschutzinformationen, Löschkonzept und technische Schutzmaßnahmen.
+4. **Datenschutz:** Lokaler Betrieb allein garantiert weder Datenschutzkonformität noch die Anwendbarkeit der Haushaltsausnahme. Bei Verarbeitung für andere Personen sind Anwendungsbereich, Verantwortlichkeit, Rechtsgrundlagen und erforderliche Datenschutzinformationen, Löschregeln und Schutzmaßnahmen zu prüfen. Gesundheitsangaben verdienen besonderen Schutz.
 5. **Minderjährige:** Konten und Daten von Schülern verdienen besonders zurückhaltende Voreinstellungen. Keine Analyse-, Werbe- oder Drittanbieter-Skripte.
 6. **Schreibende Aktionen:** Krankmeldungen oder betriebliche E-Mails erst nach Abstimmung und belastbaren Tests anbieten.
 7. **Haftung und Aktualität:** Ein Parser kann nach Änderungen der Quellwebsite falsche oder leere Daten liefern. Die Oberfläche muss Ausfälle sichtbar machen und darf veraltete Daten nicht als aktuell ausgeben.
 
 Das ist eine technische Risikoeinschätzung, keine Rechtsberatung. Für einen öffentlichen Betrieb in Deutschland sollte ein fachkundiger Jurist die konkrete Nutzung prüfen.
 
+Die Haftungsausschlüsse der MIT-Lizenz gelten nur im rechtlich zulässigen Umfang. Zwingende gesetzliche Ansprüche bleiben unberührt; weder die README noch die Bezeichnung als privates Experiment gewährleisten Haftungsfreiheit. Die maßgeblichen Hinweise und gesetzlichen Quellen stehen in der [README](../README.md#lizenz-und-fremde-rechte).
+
 ## Qualitätsregeln
 
-- keine Passwörter in Local Storage, Dateien, Logs oder Datenbank
+- manuelle Passwörter nicht dauerhaft speichern oder protokollieren; die optionale, selbst angelegte `.env` ist eine ausdrücklich dokumentierte Ausnahme mit Klartextspeicherung
 - keine fremde Sitzungs-ID im Browser
 - keine still geschluckten Parserfehler
 - anonymisierte HTML-Fixtures statt Live-Konten in Tests
