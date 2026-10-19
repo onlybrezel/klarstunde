@@ -2,8 +2,6 @@ import { ArrowRight, DoorOpen, UserRound } from 'lucide-react'
 import type { Lesson, TimetableDay, TimetableLabels } from '../../shared/timetable'
 import { assessmentLabel, roomLabel, subjectLabel } from '../../shared/timetable-labels'
 
-const periodTimes: Record<number, string> = { 1: '08:00', 2: '08:45', 3: '09:45', 4: '10:30', 5: '11:30', 6: '12:15', 7: '13:15', 8: '14:00', 9: '15:00', 10: '15:45' }
-
 function lessonClass(subject: string): string {
   const choices = ['sage', 'sand', 'blue', 'plum', 'clay']
   const score = Array.from(subject).reduce((sum, character) => sum + character.charCodeAt(0), 0)
@@ -49,28 +47,46 @@ function LessonEntry({ lesson, labels }: { lesson: Lesson; labels: TimetableLabe
 
 const emptyLabels: TimetableLabels = { subjects: {}, rooms: {} }
 
-export function Timetable({ days, labels = emptyLabels }: { days: TimetableDay[]; labels?: TimetableLabels }) {
-  const allPeriods = days.flatMap((day) => day.lessons.map((lesson) => lesson.period))
+export function Timetable({ days, labels = emptyLabels, classDays, compact = false }: { days: TimetableDay[]; labels?: TimetableLabels; classDays?: TimetableDay[]; compact?: boolean }) {
+  const comparison = Boolean(classDays)
+  const visibleClassDays = classDays?.filter((day) => days.some((personal) => personal.date === day.date)) ?? []
+  const allPeriods = [...days, ...visibleClassDays].flatMap((day) => day.lessons.map((lesson) => lesson.period))
   const firstPeriod = allPeriods.includes(0) ? 0 : 1
   const lastPeriod = Math.max(firstPeriod, ...allPeriods)
   const periods = Array.from({ length: lastPeriod - firstPeriod + 1 }, (_, index) => firstPeriod + index)
 
+  function entries(day: TimetableDay | undefined, period: number, first: boolean) {
+    if (!day) return <p className="day-notice">Keine Vergleichsdaten</p>
+    if (day.notice) return first ? <p className="day-notice">{day.notice}</p> : null
+    if (day.lessons.length === 0) return first ? <p className="day-notice">Keine Einträge</p> : null
+    return day.lessons.filter((lesson) => lesson.period === period).map((lesson, index) => <LessonEntry lesson={lesson} labels={labels} key={`${lesson.subject}-${lesson.teacher}-${index}`} />)
+  }
+
+  if (days.length === 0) return <div className="empty-area"><strong>Keine Einträge</strong><p>Für diesen Tag sind keine Daten vorhanden.</p></div>
+
   return (
-    <div className="timetable-scroll">
-      <div className="timetable" style={{ '--day-count': days.length } as React.CSSProperties}>
-        <div className="corner-cell">Stunde</div>
-        {days.map((day) => {
-          const date = new Date(`${day.date}T12:00:00`)
-          const today = day.date === new Date().toLocaleDateString('sv-SE')
-          return <div className={`day-heading ${today ? 'today' : ''}`} key={day.date}><strong>{date.toLocaleDateString('de-DE', { weekday: 'long' })}</strong><span>{date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}</span>{today && <small>Heute</small>}</div>
-        })}
-        {periods.map((period) => (
-          <div className="period-row" key={period}>
-            <div className="period-label"><strong>{period}</strong><span>{periodTimes[period] ?? ''}</span></div>
+    <div className={`timetable-scroll ${compact ? 'compact-plan' : ''} ${comparison ? 'comparison-plan' : ''} ${days.length === 1 ? 'daily-plan' : ''}`}>
+      <div className="timetable" style={{ '--day-count': days.length } as React.CSSProperties} role="table" aria-label="Stundenplan">
+        <div className="period-row" role="row">
+          <div className="corner-cell" role="columnheader">Stunde</div>
+          {days.map((day) => {
+            const date = new Date(`${day.date}T12:00:00`)
+            const today = day.date === new Date().toLocaleDateString('sv-SE')
+            return <div className={`day-heading ${today ? 'today' : ''}`} role="columnheader" key={day.date}><strong>{date.toLocaleDateString('de-DE', { weekday: 'long' })}</strong><span>{date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}</span>{today && <small>Heute</small>}</div>
+          })}
+        </div>
+        {periods.map((period, periodIndex) => (
+          <div className="period-row" role="row" key={period}>
+            <div className="period-label" role="rowheader"><strong>{allPeriods.length ? period : '–'}</strong></div>
             {days.map((day) => {
-              const lessons = day.lessons.filter((entry) => entry.period === period)
               const today = day.date === new Date().toLocaleDateString('sv-SE')
-              return <div className={`lesson-cell ${lessons.length > 1 ? 'parallel' : ''} ${today ? 'today-column' : ''}`} key={day.date}>{lessons.map((lesson, index) => <LessonEntry lesson={lesson} labels={labels} key={`${lesson.subject}-${lesson.teacher}-${index}`} />)}</div>
+              const classDay = visibleClassDays.find((entry) => entry.date === day.date)
+              return <div className={`lesson-cell ${today ? 'today-column' : ''}`} role="cell" key={day.date}>
+                {comparison ? <div className="comparison-lanes">
+                  <section aria-label="Mein Plan">{periodIndex === 0 && <h2 className="lane-label">Mein Plan</h2>}{entries(day, period, periodIndex === 0)}</section>
+                  <section aria-label="Klassenplan">{periodIndex === 0 && <h2 className="lane-label">Klassenplan</h2>}{entries(classDay, period, periodIndex === 0)}</section>
+                </div> : entries(day, period, periodIndex === 0)}
+              </div>
             })}
           </div>
         ))}

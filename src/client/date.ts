@@ -20,8 +20,16 @@ export function isoDate(date: Date): string {
 }
 
 export function weekLabel(monday: Date): string {
-  const friday = addDays(monday, 4)
+  const friday = addDays(monday, 6)
   const start = monday.toLocaleDateString('de-DE', { day: '2-digit', month: 'short' })
   const end = friday.toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' })
   return `${start} – ${end}`
+}
+
+export function semesterRange(today: Date): [string, string] {
+  const year = today.getFullYear()
+  if (today.getMonth() === 0) return [`${year - 1}-08-01`, `${year}-01-31`]
+  return today.getMonth() < 7
+    ? [`${year}-02-01`, `${year}-07-31`]
+    : [`${year}-08-01`, `${year + 1}-01-31`]
 }

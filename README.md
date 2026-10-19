@@ -43,19 +43,30 @@ Insbesondere gilt:
 
 ## Funktionen
 
-- persönlicher Wochenstundenplan
+- persönlicher Tages- und Wochenstundenplan einschließlich Wochenende
+- Tages-, Wochen- und Datumswechsel sowie Sprung zur vorherigen oder nächsten Unterrichtswoche über die Navigation des Originalportals
+- direkter Vergleich mit dem Wochenplan der eigenen Klasse
+- kompakte Darstellung und effektiver Plan wie im Originalportal
 - Vertretungen, Raumwechsel, Entfall und parallele Kurse
 - Klassenarbeiten, Klausuren und andere Leistungsnachweise
 - Fehlzeiten, Anwesenheiten und eingetragene Ergebnisse
 - Zeitraum-, Zeugnis-, Fach-, Raum-, Lehrkraft- und Stundenfilter, soweit vom Konto angeboten
 - Klassenbuch, Unterrichtsinhalte und Hausaufgaben
 - Schul- und Klassennachrichten
-- Krankmeldung mit Bestätigung
+- Krankmeldung mit Bestätigung vor dem Absenden und Hinweis bei unklarer Übermittlung
 - freigegebene Dateien
 - Klassen- und Blockpläne
 - digitaler Schülerausweis, sofern freigeschaltet
 - optionale Telegram-Hinweise bei bestätigten Stundenplanänderungen
 - Demo-Modus ohne Schulkonto
+
+Die Oberfläche orientiert sich am Funktionsumfang des Originalportals. Die vorhandene optionale Telegram-Erweiterung ist daher nicht mehr Bestandteil der Navigation; bestehende lokale Konfigurationen funktionieren weiter.
+
+Stundenzeiten werden ohne belegte Angaben des Quelldienstes nicht ergänzt. Wiederholte Ferienangaben erscheinen einmal je Tag. Fehlen die erwarteten Stundenplantabellen oder passt das gelieferte Datum nicht, erscheint ein Fehler statt eines vermeintlich freien Tages.
+
+Identische Stundenplanabfragen werden kurzzeitig für dieselbe Sitzung zusammengefasst und bis zu 30 Sekunden im Arbeitsspeicher wiederverwendet. „Neu laden“ umgeht diesen Cache. Abmelden verwirft die zugehörigen Cacheeinträge; es werden keine Stundenpläne im Browser gespeichert. Der angezeigte Abrufzeitpunkt bezieht sich auf den persönlichen Plan. Für den Klassenvergleich wird der Klassenplan gegebenenfalls anschließend separat geladen. Abrufe für dieselbe Sitzung laufen nacheinander, damit die Datumsnavigation des Portals nicht durch gleichzeitige Anfragen verfälscht wird.
+
+Eine tatsächliche Erfolgsantwort für Krankmeldungen wurde nicht durch eine schreibende Live-Prüfung verifiziert. Antworten ohne bekannten Fehler werden deshalb vorsichtig als „nicht eindeutig bestätigt“ behandelt. Dann muss der Stand im Originalportal geprüft werden; derselbe Zeitraum wird innerhalb der Sitzung vorübergehend gegen erneutes Absenden gesperrt. Diese Sperre ist lokal und ersetzt keine Bestätigung des Schuldienstes.
 
 Nicht jede Schule schaltet dieselben Funktionen frei. Getestet sind nur die Bereiche, die im verwendeten Testkonto sichtbar waren.
 

@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently -n web,server -c cyan,green \"vite\" \"tsx watch src/server/index.ts\"",
+    "dev": "concurrently -n web,server -c cyan,green \"vite\" \"node --watch --import tsx src/server/index.ts\"",
     "build": "tsc -b && vite build",
-    "start": "NODE_ENV=production tsx src/server/index.ts",
+    "start": "tsx src/server/start.ts",
     "lint": "eslint .",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",

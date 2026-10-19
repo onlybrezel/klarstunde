@@ -78,6 +78,7 @@ Die Browseroberfläche spricht nur diese stabilen Endpunkte an:
 | `POST` | `/api/session` | beim Quelldienst anmelden |
 | `DELETE` | `/api/session` | lokale Sitzung löschen |
 | `GET` | `/api/timetable?start=YYYY-MM-DD` | normalisierte Schulwoche laden |
+| `GET` | `/api/timetable/teaching-date?start=YYYY-MM-DD&direction=next` | Unterrichtswochen-Navigation des Portals ausführen; auch `previous` |
 | `GET` | `/api/attendance` | Fehlzeiten, Ergebnisse und angebotene Filter laden |
 | `GET` | `/api/homework` | Klassenbuch, Hausaufgaben und angebotene Filter laden |
 | `GET` | `/api/messages` | Schul- und Klassennachrichten laden |
@@ -89,6 +90,10 @@ Die Browseroberfläche spricht nur diese stabilen Endpunkte an:
 | `GET`, `POST` | `/api/notifications/status`, `/api/notifications/test` | lokale Telegram-Konfiguration prüfen |
 
 Die Endpunkte geben normalisierte Daten statt fremdem HTML aus. Weitere Bereiche kommen erst hinzu, wenn ihr echtes Verhalten mit einem berechtigten Testkonto geprüft wurde. Die App erfindet keine nicht belegten Fremd-APIs.
+
+`/api/timetable` unterstützt `view=day`, `effective=1`, `compare=1` und `refresh=1`. Die Wochenansicht umfasst Montag bis Sonntag. Der Klassenplan wird einmal pro Vergleich als vollständige Woche geladen und nach Tagen und Stunden normalisiert. `/api/class-timetable` liefert ebenfalls normalisierte Stundenplandaten statt allgemeiner Tabellen. Die Parser prüfen die Kalenderdaten der Klassenspalten. Ein sitzungsgebundener Speicher-Cache gilt höchstens 30 Sekunden; manuelles Neuladen umgeht ihn. Gleichzeitige identische Anfragen teilen sich einen Abruf, und die Portalzugriffe einer Sitzung werden serialisiert. Antworten tragen `Cache-Control: no-store`.
+
+Für Krankmeldungen ist keine positive Erfolgsantwort durch einen schreibenden Live-Test belegt. Deshalb wird nach einer nicht eindeutig bestätigten Übermittlung keine Erfolgsmeldung behauptet. Der Nutzer wird auf die Prüfung im Originalportal verwiesen; doppelte Übermittlungen werden in der lokalen Sitzung begrenzt.
 
 ## Ausbauplan
 

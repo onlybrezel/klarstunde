@@ -8,7 +8,9 @@ import { clearSessionCookie, LOCAL_SESSION_COOKIE, readCookie, setSessionCookie 
 import { SessionStore } from './session-store.js'
 import { demoWeek } from './demo-data.js'
 import { ScheduleWatch } from './notifications/schedule-watch.js'
-import { fetchClasses, fetchFiles, fetchSchoolArea, fetchSharedFile, fetchStudentCard, fetchTimetableDay, login, submitSickNote, UpstreamUnavailableError } from './vsp/client.js'
+import { clearTimetableCache, fetchClasses, fetchFiles, fetchSchoolArea, fetchSharedFile, fetchStudentCard, fetchTimetable, fetchTeachingDate, fetchClassWeek, login, submitSickNote, SickNoteUncertainError, UpstreamSessionExpiredError, UpstreamUnavailableError } from './vsp/client.js'
+import { TimetableParseError } from './vsp/timetable-parser.js'
+import { germanDate, isIsoDate, weekStart } from '../shared/date.js'
 
 const app = express()
 const sessions = new SessionStore(config.sessionTtlMs)
@@ -24,6 +26,10 @@ let automaticLogin: Promise<string | undefined> | undefined
 
 app.disable('x-powered-by')
 app.use(express.json({ limit: '20kb' }))
+app.use('/api', (_request, response, next) => {
+  response.setHeader('Cache-Control', 'no-store')
+  next()
+})
 
 if (config.previewPassword) {
   app.use((request, response, next) => {
@@ -79,11 +85,13 @@ app.post('/api/session', async (request, response) => {
     response.status(204).end()
   } catch (error) {
     const message = error instanceof UpstreamUnavailableError ? error.message : 'Der Stundenplan ist gerade nicht erreichbar.'
-    response.status(502).json({ message })
+    response.status(error instanceof UpstreamSessionExpiredError ? 401 : 502).json({ message })
   }
 })
 
 app.delete('/api/session', (request, response) => {
+  const session = sessions.get(readCookie(request, LOCAL_SESSION_COOKIE))
+  if (session) clearTimetableCache(session)
   sessions.delete(readCookie(request, LOCAL_SESSION_COOKIE))
   clearSessionCookie(response)
   response.status(204).end()
@@ -92,12 +100,13 @@ app.delete('/api/session', (request, response) => {
 app.get('/api/timetable', async (request, response) => {
   const start = typeof request.query.start === 'string' ? request.query.start : ''
   const demo = request.query.demo === '1'
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(start)) {
+  if (!isIsoDate(start)) {
     response.status(400).json({ message: 'Das Startdatum ist ungültig.' })
     return
   }
   if (demo) {
-    response.json({ days: demoWeek(start), source: 'demo', labels: config.labels })
+    const days = demoWeek(weekStart(start))
+    response.json({ days: request.query.view === 'day' ? days.filter((day) => day.date === start) : days, source: 'demo', labels: config.labels, fetchedAt: new Date().toISOString(), ...(request.query.compare === '1' ? { className: 'Beispielklasse', classDays: days } : {}) })
     return
   }
 
@@ -108,17 +117,14 @@ app.get('/api/timetable', async (request, response) => {
   }
 
   try {
-    const monday = new Date(`${start}T12:00:00Z`)
-    const days = await Promise.all(Array.from({ length: 5 }, (_, index) => {
-      const date = new Date(monday)
-      date.setUTCDate(monday.getUTCDate() + index)
-      const germanDate = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }).format(date)
-      return fetchTimetableDay(upstreamSessionId, germanDate).then((day) => ({ ...day, date: date.toISOString().slice(0, 10) }))
-    }))
-    response.json({ days, source: 'live', labels: config.labels })
+    const daily = request.query.view === 'day'
+    const result = await fetchTimetable(upstreamSessionId, daily ? start : weekStart(start), {
+      count: daily ? 1 : 7, effective: request.query.effective === '1', compare: request.query.compare === '1',
+    }, request.query.refresh === '1')
+    response.json({ ...result, labels: config.labels })
   } catch (error) {
-    const message = error instanceof UpstreamUnavailableError ? error.message : 'Der Stundenplan konnte nicht geladen werden.'
-    response.status(502).json({ message })
+    const message = error instanceof UpstreamUnavailableError || error instanceof TimetableParseError ? error.message : 'Der Stundenplan konnte nicht geladen werden.'
+    response.status(error instanceof UpstreamSessionExpiredError ? 401 : 502).json({ message })
   }
 })
 
@@ -128,16 +134,19 @@ function authenticatedSession(request: express.Request, response: express.Respon
   return session
 }
 
-function germanDate(value: unknown): string | undefined {
-  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined
-  const [year, month, day] = value.split('-')
-  return `${day}.${month}.${year}`
+function areaError(response: express.Response, error: unknown): void {
+  const message = error instanceof UpstreamUnavailableError || error instanceof TimetableParseError ? error.message : 'Der Bereich konnte nicht geladen werden.'
+  response.status(error instanceof UpstreamSessionExpiredError ? 401 : 502).json({ message })
 }
 
-function areaError(response: express.Response, error: unknown): void {
-  const message = error instanceof UpstreamUnavailableError ? error.message : 'Der Bereich konnte nicht geladen werden.'
-  response.status(502).json({ message })
-}
+app.get('/api/timetable/teaching-date', async (request, response) => {
+  const session = authenticatedSession(request, response)
+  if (!session) return
+  const start = request.query.start
+  const direction = request.query.direction
+  if (!isIsoDate(start) || (direction !== 'previous' && direction !== 'next')) return void response.status(400).json({ message: 'Datum oder Richtung ist ungültig.' })
+  try { response.json({ date: await fetchTeachingDate(session, start, direction) }) } catch (error) { areaError(response, error) }
+})
 
 function selectedFilters(request: express.Request, names: readonly string[]): URLSearchParams {
   const parameters = new URLSearchParams()
@@ -168,7 +177,7 @@ app.get('/api/attendance', async (request, response) => {
   if (!session) return
   const from = germanDate(request.query.from)
   const until = germanDate(request.query.until)
-  if (!from || !until) return void response.status(400).json({ message: 'Der Zeitraum ist ungültig.' })
+  if (!from || !until || String(request.query.from) > String(request.query.until)) return void response.status(400).json({ message: 'Der Zeitraum ist ungültig.' })
   try {
     const parameters = selectedFilters(request, ['SJ'])
     parameters.set('KlaBuDatumVon', from)
@@ -183,7 +192,7 @@ app.get('/api/homework', async (request, response) => {
   if (!session) return
   const from = germanDate(request.query.from)
   const until = germanDate(request.query.until)
-  if (!from || !until) return void response.status(400).json({ message: 'Der Zeitraum ist ungültig.' })
+  if (!from || !until || String(request.query.from) > String(request.query.until)) return void response.status(400).json({ message: 'Der Zeitraum ist ungültig.' })
   try {
     const parameters = selectedFilters(request, ['Kurs', 'Fach', 'Raum', 'LK', 'vonTag', 'bisTag', 'vonh', 'bish'])
     parameters.set('KlaBuDatumVon', from)
@@ -219,7 +228,7 @@ app.get('/api/class-timetable', async (request, response) => {
   const className = typeof request.query.class === 'string' ? request.query.class : ''
   if (!start || !className || className.length > 80) return void response.status(400).json({ message: 'Klasse oder Datum ist ungültig.' })
   try {
-    response.json(await fetchSchoolArea(session, '/page-5/index.php', new URLSearchParams({ Klasse: className, KlaBuDatum: start, HideChangesOff: '1', CompactOff: '1' })))
+    response.json({ days: await fetchClassWeek(session, className, String(request.query.start), request.query.effective === '1'), source: 'live', className, labels: config.labels, fetchedAt: new Date().toISOString() })
   } catch (error) { areaError(response, error) }
 })
 
@@ -251,6 +260,9 @@ app.get('/api/student-card', async (request, response) => {
   try { response.json({ pages: await fetchStudentCard(session) }) } catch (error) { areaError(response, error) }
 })
 
+const sickNotesInFlight = new Set<string>()
+const uncertainSickNotes = new Map<string, number>()
+
 app.post('/api/sick-notes', async (request, response) => {
   const session = authenticatedSession(request, response)
   if (!session) return
@@ -258,10 +270,20 @@ app.post('/api/sick-notes', async (request, response) => {
   const until = germanDate(request.body?.until)
   if (!from || !until) return void response.status(400).json({ message: 'Der Zeitraum ist ungültig.' })
   if (new Date(request.body.from) > new Date(request.body.until)) return void response.status(400).json({ message: 'Das Enddatum liegt vor dem Startdatum.' })
+  const key = JSON.stringify([session, from, until])
+  for (const [entry, expires] of uncertainSickNotes) if (expires <= Date.now()) uncertainSickNotes.delete(entry)
+  if (sickNotesInFlight.has(session) || uncertainSickNotes.has(key)) return void response.status(409).json({ message: 'Dieser Zeitraum wird bereits übermittelt oder wurde schon gesendet. Bitte prüfe den Stand im Originalportal.' })
+  sickNotesInFlight.add(session)
   try {
     await submitSickNote(session, from, until)
     response.status(204).end()
-  } catch (error) { areaError(response, error) }
+  } catch (error) {
+    if (error instanceof SickNoteUncertainError) {
+      if (uncertainSickNotes.size >= 512) uncertainSickNotes.delete(uncertainSickNotes.keys().next().value!)
+      uncertainSickNotes.set(key, Date.now() + config.sessionTtlMs)
+      response.status(502).json({ message: error.message })
+    } else { areaError(response, error) }
+  } finally { sickNotesInFlight.delete(session) }
 })
 
 if (process.env.NODE_ENV === 'production') {
@@ -271,7 +293,9 @@ if (process.env.NODE_ENV === 'production') {
   app.get('*splat', (_request, response) => response.sendFile(path.join(clientDirectory, 'index.html')))
 }
 
-app.listen(config.port, config.host, () => {
+export { app }
+
+if (process.env.NODE_ENV !== 'test') app.listen(config.port, config.host, () => {
   console.log(`Klarstunde läuft auf http://${config.host}:${config.port}`)
   void scheduleWatch.start()
 })

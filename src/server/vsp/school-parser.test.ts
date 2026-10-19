@@ -30,6 +30,33 @@ describe('school page parsers', () => {
 
   it('keeps student-card markup inert and returns only text and embedded images', () => {
     const html = '<section class="page"><article><h2>Ausweis</h2><script>alert(1)</script><p>Name Beispiel</p><img alt="Photo" src="data:image/png;base64,abc"></article></section>'
-    expect(parseStudentCard(html)).toEqual([{ title: 'Ausweis', text: 'Ausweis Name Beispiel', images: [{ alt: 'Photo', source: 'data:image/png;base64,abc' }] }])
+    expect(parseStudentCard(html)).toEqual([{ title: 'Ausweis', text: 'Ausweis Name Beispiel', images: [{ alt: 'Photo', source: 'data:image/png;base64,abc', role: 'photo' }] }])
+  })
+
+  it('reads identity fields, school and status without flattening them into a paragraph', () => {
+    const html = `<section class="page"><article>
+      <div class="wallet-top"><span class="pill pill-light">BBS-ID</span><span class="pill pill-valid">GÜLTIG</span></div>
+      <div class="wallet-main"><div class="photo-frame"><img alt="Photo" src="data:image/png;base64,cGhvdG8="></div>
+      <div class="wallet-info"><div class="meta"><div class="meta-label">Name</div><div class="meta-value">Beispiel, Alex</div></div>
+      <div class="meta"><div class="meta-label">Geburtsdatum</div><div class="meta-value">01.01.2008</div></div>
+      <div class="meta"><div class="meta-label">Schuljahr - Klasse</div><div class="meta-value">2026/27 1.Halb</div></div></div></div>
+      <div class="wallet-bottom">Beispiel, Alex ist Schüler*in an der: <strong>Beispielschule</strong></div>
+    </article></section>`
+    expect(parseStudentCard(html)[0]).toMatchObject({
+      title: 'Schülerausweis', kind: 'identity', schoolName: 'Beispielschule', status: 'GÜLTIG',
+      fields: [{ label: 'Name', value: 'Beispiel, Alex' }, { label: 'Geburtsdatum', value: '01.01.2008' }, { label: 'Schuljahr - Klasse', value: '2026/27 1.Halb' }],
+      images: [{ alt: 'Photo', source: 'data:image/png;base64,cGhvdG8=', role: 'photo' }],
+    })
+    expect(parseStudentCard(html.replace('pill-valid', 'pill-expired').replace('GÜLTIG', 'ABGELAUFEN'))[0].status).toBe('ABGELAUFEN')
+  })
+
+  it('separates school address, verification QR and technical QR without changing the image bytes', () => {
+    const html = `<section class="page"><article><span class="surface-pill">SCHULANSCHRIFT</span><div class="school-copy"><h2 class="school-title">Beispielschule</h2><div class="inline-row"><div class="inline-label">Adresse:</div><div class="inline-value">Schulstraße 1</div></div><div class="inline-row"><div class="inline-label">Ort:</div><div class="inline-value">12345 Beispielstadt</div></div></div></article></section>
+      <section class="page"><article><span>Zum Überprüfen scannen</span><div class="qr-wrap"><img alt="BBS QR Code" src="data:image/png;base64,cXIrLz0="></div></article></section>
+      <section class="page"><article><span>GUID QR</span><div class="qr-wrap"><img alt="GUID QR Code" src="data:image/png;base64,Z3VpZA=="></div></article></section>`
+    const pages = parseStudentCard(html)
+    expect(pages[0]).toMatchObject({ kind: 'school', schoolName: 'Beispielschule', fields: [{ label: 'Adresse', value: 'Schulstraße 1' }, { label: 'Ort', value: '12345 Beispielstadt' }] })
+    expect(pages[1]).toMatchObject({ kind: 'verification', images: [{ source: 'data:image/png;base64,cXIrLz0=', role: 'code' }] })
+    expect(pages[2]).toMatchObject({ kind: 'technical', images: [{ source: 'data:image/png;base64,Z3VpZA==', role: 'code' }] })
   })
 })

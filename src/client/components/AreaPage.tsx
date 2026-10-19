@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { SlidersHorizontal } from 'lucide-react'
 import type { SchoolAreaResponse, SchoolFilter } from '../../shared/school'
-import { addDays, isoDate, mondayOf } from '../date'
+import { addDays, isoDate, mondayOf, semesterRange } from '../date'
+import { isIsoDate } from '../../shared/date'
 import { getSchoolArea, getSimpleArea } from '../api'
 import { SchoolTables } from './SchoolTable'
 
@@ -16,13 +17,6 @@ const filterLabels: Record<string, string> = {
   Kurs: 'Kurs', Fach: 'Fach', Raum: 'Raum', LK: 'Lehrkraft',
   vonTag: 'Wochentag von', bisTag: 'Wochentag bis', vonh: 'Stunde von', bish: 'Stunde bis',
   SJ: 'Zeugniszeitraum', Schuljahr: 'Schuljahr',
-}
-
-function semesterRange(today: Date): [string, string] {
-  const year = today.getFullYear()
-  return today.getMonth() < 7
-    ? [isoDate(new Date(year, 1, 1)), isoDate(new Date(year, 6, 31))]
-    : [isoDate(new Date(year, 7, 1)), isoDate(new Date(year + 1, 0, 31))]
 }
 
 function visibleFilters(filters: SchoolFilter[], area: AreaPageProps['area']): SchoolFilter[] {
@@ -43,14 +37,23 @@ export function AreaPage({ area, title, description, note }: AreaPageProps) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    const ranged = area === 'attendance' || area === 'homework'
+    if (ranged && (!isIsoDate(from) || !isIsoDate(until) || from > until)) {
+      setLoading(false)
+      setError('Bitte wähle einen gültigen Zeitraum. Das Enddatum darf nicht vor dem Startdatum liegen.')
+      return
+    }
     let active = true
+    const controller = new AbortController()
     setLoading(true)
     setError('')
-    const promise = area === 'attendance' || area === 'homework'
-      ? getSchoolArea(area, from, until, filters, onlyAbsences)
-      : getSimpleArea(area, filters)
-    promise.then((value) => { if (active) setData(value) }).catch((reason: unknown) => { if (active) setError(reason instanceof Error ? reason.message : 'Der Bereich konnte nicht geladen werden.') }).finally(() => { if (active) setLoading(false) })
-    return () => { active = false }
+    const timer = window.setTimeout(() => {
+      const promise = area === 'attendance' || area === 'homework'
+        ? getSchoolArea(area, from, until, filters, onlyAbsences, controller.signal)
+        : getSimpleArea(area, filters, controller.signal)
+      promise.then((value) => { if (active) setData(value) }).catch((reason: unknown) => { if (active) setError(reason instanceof Error ? reason.message : 'Der Bereich konnte nicht geladen werden.') }).finally(() => { if (active) setLoading(false) })
+    }, 250)
+    return () => { active = false; window.clearTimeout(timer); controller.abort() }
   }, [area, filters, from, onlyAbsences, until])
 
   function setRange(start: Date, end: Date) {

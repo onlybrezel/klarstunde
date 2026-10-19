@@ -35,7 +35,11 @@ export interface SharedFile {
 export interface StudentCardPage {
   title: string
   text: string
-  images: Array<{ alt: string; source: string }>
+  kind?: 'identity' | 'school' | 'verification' | 'technical' | 'other'
+  fields?: Array<{ label: string; value: string }>
+  schoolName?: string
+  status?: string
+  images: Array<{ alt: string; source: string; role?: 'photo' | 'code' | 'logo' | 'other' }>
 }
 
 export interface SchoolAreaResponse {

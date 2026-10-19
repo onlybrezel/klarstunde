@@ -40,6 +40,22 @@ Vermieden werden:
 4. eigentliche Daten
 5. Status, Fehler oder leerer Zustand in normaler Sprache
 
+## Stundenplan und Navigation
+
+- Die dunkle Seitenleiste bleibt auf Desktop schmal; das ausgewählte Ziel erhält eine einzelne limettenfarbene Fläche.
+- Eine zurückhaltende Kopfzeile trennt die Schulübersicht vom eigentlichen Inhalt.
+- Tages- und Wochenwechsel stehen neben der Überschrift. Die selteneren Darstellungsoptionen liegen unter „Ansicht“; die Auswahl lässt sich mit Escape oder einem Klick außerhalb schließen.
+- Zeitraum und Datumsnavigation bilden eine zusammenhängende Steuerung. Auf Mobilgeräten liegen die Tagespfeile unter dem Datumstitel.
+- Reguläre Unterrichtseinträge stehen auf Weiß. Kleine Fachakzente helfen bei der Orientierung; Entfall und Änderungen besitzen zusätzlich sichtbare Textbezeichnungen.
+- Der heutige Tag wird durch einen hellen Hintergrund, eine obere Linie und „Heute“ markiert.
+- Anmeldeseite und Datenansichten verwenden dieselben Schriftgewichte, kleinen Radien und zurückhaltenden Trennlinien. Dekorative Hintergrundringe und großflächige Schatten entfallen.
+
+## Schülerausweis
+
+Der Ausweis erhält eine eigenständige Karte im Querformat mit Foto, Schule, Name und einzeln beschrifteten Feldern. Es werden nur gelieferte Angaben gezeigt; fehlende Fotos erhalten einen neutralen Platzhalter. Ein Status ist immer als Angabe des Originalportals beschriftet. Es werden keine Ablaufdaten, Kennnummern oder Prüfmerkmale ergänzt.
+
+Der unveränderte Prüfcode liegt auf einer separat wählbaren Rückseite mit weißem Rand. Technische Codes, Schulanschrift und weitere Angaben bleiben unter einer aufklappbaren Übersicht erhalten. In der Demo sind Beispieldaten sichtbar gekennzeichnet; sie enthält keinen scannbaren Nachweis. Persönliche Fotos und echte Prüfcodes gehören nicht in gespeicherte Gestaltungsvorschauen.
+
 ## Quellen
 
 - GOV.UK Design System: Spacing und responsive Abstände

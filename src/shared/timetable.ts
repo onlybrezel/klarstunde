@@ -19,12 +19,17 @@ export interface Lesson {
 export interface TimetableDay {
   date: string
   lessons: Lesson[]
+  notice?: string
 }
 
 export interface TimetableResponse {
   days: TimetableDay[]
   source: 'live' | 'demo'
   labels?: TimetableLabels
+  fetchedAt?: string
+  className?: string
+  classDays?: TimetableDay[]
+  comparisonMessage?: string
 }
 
 export interface TimetableLabels {

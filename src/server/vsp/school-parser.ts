@@ -93,10 +93,23 @@ export function parseStudentCard(html: string): StudentCardPage[] {
           : text.includes('GUID') ? 'Technischer Prüfcode'
             : text.includes('ZERTIFIKAT') ? 'Zertifikat'
               : `Ausweis ${index + 1}`)
-    const images = article.find('img[src^="data:image/"]').map((_, image) => ({
-      alt: $(image).attr('alt') ?? '',
-      source: $(image).attr('src') ?? '',
-    })).get()
-    return { title, text, images }
+    const structuredIdentity = article.find('.wallet-info .meta').length > 0
+    const structuredSchool = article.find('.school-copy').length > 0
+    const hasCode = article.find('.qr-wrap img').length > 0
+    const kind: StudentCardPage['kind'] = structuredIdentity ? 'identity' : structuredSchool ? 'school'
+      : hasCode ? (/GUID/i.test(text) ? 'technical' : 'verification') : 'other'
+    const fields = article.find(structuredIdentity ? '.wallet-info .meta' : '.school-copy .inline-row').map((_, field) => ({
+      label: clean($(field).find(structuredIdentity ? '.meta-label' : '.inline-label').first().text()).replace(/:$/, ''),
+      value: clean($(field).find(structuredIdentity ? '.meta-value' : '.inline-value').first().text()),
+    })).get().filter((field) => field.label && field.value)
+    const schoolName = clean(article.find(structuredIdentity ? '.wallet-bottom strong' : '.school-title').first().text())
+    const status = structuredIdentity ? clean(article.find('.wallet-top .pill').not('.pill-light').first().text()) : ''
+    const images = article.find('img[src^="data:image/"]').map((_, image) => {
+      const alt = $(image).attr('alt') ?? ''
+      const role: StudentCardPage['images'][number]['role'] = $(image).closest('.photo-frame').length || /^(?:photo|foto|passbild)$/i.test(alt) ? 'photo'
+        : $(image).closest('.qr-wrap').length ? 'code' : /logo/i.test(alt) ? 'logo' : 'other'
+      return { alt, source: $(image).attr('src') ?? '', ...(role !== 'other' ? { role } : {}) }
+    }).get()
+    return { title, text, images, ...(kind !== 'other' ? { kind } : {}), ...(fields.length ? { fields } : {}), ...(schoolName ? { schoolName } : {}), ...(status ? { status } : {}) }
   }).get()
 }

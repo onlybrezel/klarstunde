@@ -11,15 +11,16 @@ const subjects = [
 
 export function demoWeek(startDate: string): TimetableDay[] {
   const monday = new Date(`${startDate}T12:00:00Z`)
-  return Array.from({ length: 5 }, (_, dayIndex) => ({
+  return Array.from({ length: 7 }, (_, dayIndex) => ({
     date: monday.toISOString().slice(0, 10),
-    lessons: Array.from({ length: dayIndex === 4 ? 4 : 6 }, (_, periodIndex) => {
+    lessons: Array.from({ length: dayIndex > 4 ? 0 : dayIndex === 4 ? 4 : 6 }, (_, periodIndex) => {
       const subject = subjects[(periodIndex + dayIndex) % subjects.length]
       return {
         period: periodIndex + 1,
         subject: subject[0],
         teacher: subject[1],
         room: subject[2],
+        ...(dayIndex === 1 && periodIndex === 3 ? { previous: { room: 'B204' } } : {}),
         status: dayIndex === 1 && periodIndex === 3 ? 'changed' as const : dayIndex === 3 && periodIndex === 5 ? 'cancelled' as const : 'regular' as const,
       }
     }),

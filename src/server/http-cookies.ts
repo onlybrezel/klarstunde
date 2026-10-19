@@ -8,7 +8,9 @@ export function readCookie(request: Request, name: string): string | undefined {
 
   for (const cookie of cookieHeader.split(';')) {
     const [key, ...valueParts] = cookie.trim().split('=')
-    if (key === name) return decodeURIComponent(valueParts.join('='))
+    if (key === name) {
+      try { return decodeURIComponent(valueParts.join('=')) } catch { return undefined }
+    }
   }
   return undefined
 }

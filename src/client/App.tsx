@@ -14,6 +14,12 @@ export function App() {
       .catch(() => setState('login'))
   }, [])
 
+  useEffect(() => {
+    const expire = () => setState((current) => current === 'demo' ? current : 'login')
+    window.addEventListener('session-expired', expire)
+    return () => window.removeEventListener('session-expired', expire)
+  }, [])
+
   async function logout() {
     if (state === 'authenticated') await deleteSession().catch(() => undefined)
     setState('login')
