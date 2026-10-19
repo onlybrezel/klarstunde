@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { clearTimetableCache, fetchTeachingDate, fetchTimetable, SickNoteUncertainError, submitSickNote } from './client.js'
+import { clearTimetableCache, fetchSchoolArea, fetchStudentCard, fetchTeachingDate, fetchTimetable, SickNoteUncertainError, submitSickNote, UpstreamSessionExpiredError } from './client.js'
 
 function page(date = '27.10.2026', extra = ''): string {
   return `<input name="KlaBuDatum" value="${date}">${extra}` + ['Fach', 'LK', 'Raum'].map((title) => `<div data-title="${title}"><table id="editableTable"><tr><th>Std.</th><th>Plan</th></tr><tr><td>0</td><td>-</td></tr><tr><td>1</td><td>${title}</td></tr></table></div>`).join('')
@@ -8,6 +8,28 @@ function page(date = '27.10.2026', extra = ''): string {
 afterEach(() => { clearTimetableCache('test-session'); clearTimetableCache('other-session'); vi.unstubAllGlobals(); vi.useRealTimers() })
 
 describe('timetable access', () => {
+  it.each([
+    () => new Response(null, { status: 302, headers: { location: '/' } }),
+    () => new Response('Anmeldung erforderlich', { status: 401 }),
+    () => new Response('<form><input name="MAIL"><input name="SCHUELERCODE" type="password"></form>'),
+  ])('recognizes expired sessions before parsing a login page as empty school data', async (response) => {
+    const fetchMock = vi.fn().mockImplementation(async () => response())
+    vi.stubGlobal('fetch', fetchMock)
+    await expect(fetchSchoolArea('test-session', '/page2/page-2/')).rejects.toBeInstanceOf(UpstreamSessionExpiredError)
+    await expect(fetchStudentCard('test-session')).rejects.toBeInstanceOf(UpstreamSessionExpiredError)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('recovers after an incomplete source table without retaining a failed cache entry', async () => {
+    const incomplete = page().replace(/<div data-title="Raum">[\s\S]*?<\/div>/, '')
+    const fetchMock = vi.fn().mockResolvedValueOnce(new Response(incomplete)).mockResolvedValueOnce(new Response(page()))
+    vi.stubGlobal('fetch', fetchMock)
+    const options = { count: 1 as const, effective: false, compare: false }
+    await expect(fetchTimetable('test-session', '2026-10-27', options)).rejects.toThrow('Aufbau')
+    await expect(fetchTimetable('test-session', '2026-10-27', options)).resolves.toMatchObject({ days: [{ date: '2026-10-27' }] })
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
   it('shares concurrent identical reads, caches briefly and bypasses cache on refresh', async () => {
     const fetchMock = vi.fn().mockImplementation(async () => new Response(page()))
     vi.stubGlobal('fetch', fetchMock)

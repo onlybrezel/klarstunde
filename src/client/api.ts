@@ -16,9 +16,12 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(path, {
     ...options,
     headers: { 'content-type': 'application/json', ...options?.headers },
+  }).catch((error: unknown) => {
+    if (options?.signal?.aborted) throw error
+    throw new Error('Die Verbindung ist unterbrochen. Prüfe deine Verbindung und ob Klarstunde noch läuft. Versuche es anschließend erneut.')
   })
   if (!response.ok) {
-    if (response.status === 401) window.dispatchEvent(new Event('session-expired'))
+    if (response.status === 401 && path !== '/api/session') window.dispatchEvent(new Event('session-expired'))
     const body = await response.json().catch(() => ({})) as ApiErrorBody
     throw new ApiError(body.message ?? 'Etwas ist schiefgelaufen.', response.status)
   }

@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "dev": "concurrently -n web,server -c cyan,green \"vite\" \"node --watch --import tsx src/server/index.ts\"",
     "build": "tsc -b && vite build",
     "start": "tsx src/server/start.ts",

@@ -8,7 +8,7 @@ export function SchoolTables({ tables, emptyText = 'Für diesen Zeitraum gibt es
   return <div className="table-stack">{visible.map((table, index) => (
     <section className="data-card" key={`${table.title}-${index}`}>
       <h2>{table.title}</h2>
-      <div className="data-table-scroll"><table><thead><tr>{table.columns.map((column, columnIndex) => <th key={`${column}-${columnIndex}`}>{column || '–'}</th>)}</tr></thead>
+      <div className="data-table-scroll" role="region" aria-label={table.title} tabIndex={0}><table><thead><tr>{table.columns.map((column, columnIndex) => <th scope="col" key={`${column}-${columnIndex}`}>{column || '–'}</th>)}</tr></thead>
         <tbody>{table.rows.map((row, rowIndex) => <tr key={rowIndex}>{row.map((cell, cellIndex) => {
           const link = table.links?.[rowIndex]?.[cellIndex]
           return <td key={cellIndex}>{link

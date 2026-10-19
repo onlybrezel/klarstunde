@@ -35,6 +35,7 @@ export function AreaPage({ area, title, description, note }: AreaPageProps) {
   const [data, setData] = useState<SchoolAreaResponse>()
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
+  const [reload, setReload] = useState(0)
 
   useEffect(() => {
     const ranged = area === 'attendance' || area === 'homework'
@@ -54,7 +55,7 @@ export function AreaPage({ area, title, description, note }: AreaPageProps) {
       promise.then((value) => { if (active) setData(value) }).catch((reason: unknown) => { if (active) setError(reason instanceof Error ? reason.message : 'Der Bereich konnte nicht geladen werden.') }).finally(() => { if (active) setLoading(false) })
     }, 250)
     return () => { active = false; window.clearTimeout(timer); controller.abort() }
-  }, [area, filters, from, onlyAbsences, until])
+  }, [area, filters, from, onlyAbsences, until, reload])
 
   function setRange(start: Date, end: Date) {
     setFrom(isoDate(start))
@@ -89,8 +90,8 @@ export function AreaPage({ area, title, description, note }: AreaPageProps) {
       {activeFilterCount > 0 && <button className="reset-filters" type="button" onClick={() => { setFilters({}); setOnlyAbsences(false) }}>Filter zurücksetzen</button>}
     </details>}
 
-    {loading && <div className="area-loading">Daten werden geladen …</div>}
-    {error && <div className="state-card error-state"><strong>Nicht verfügbar</strong><p>{error}</p></div>}
+    {loading && <div className="area-loading" role="status">Daten werden geladen …</div>}
+    {error && <div className="state-card error-state" role="alert"><strong>Nicht verfügbar</strong><p>{error}</p><button onClick={() => setReload((value) => value + 1)}>Erneut versuchen</button></div>}
     {!loading && !error && data && <><div className="notice-stack">{data.notices.map((notice, index) => <article key={index}><strong>{notice.title}</strong><p>{notice.body}</p></article>)}</div><SchoolTables tables={data.tables} /></>}
   </div>
 }

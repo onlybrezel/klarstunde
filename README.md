@@ -51,6 +51,7 @@ Insbesondere gilt:
 - freigegebene Dateien
 - Klassen- und Blockpläne
 - digitaler Schülerausweis, sofern freigeschaltet
+- direkter Ausweiszugriff und Großansicht für Karte und unveränderten Prüfcode
 - optionale Telegram-Hinweise bei bestätigten Stundenplanänderungen
 - Demo-Modus ohne Schulkonto
 
@@ -59,6 +60,8 @@ Die Oberfläche orientiert sich am Funktionsumfang des Originalportals. Die vorh
 Stundenzeiten werden ohne belegte Angaben des Quelldienstes nicht ergänzt. Wiederholte Ferienangaben erscheinen einmal je Tag. Fehlen die erwarteten Stundenplantabellen oder passt das gelieferte Datum nicht, erscheint ein Fehler statt eines vermeintlich freien Tages.
 
 Stundenplanantworten können für dieselbe Sitzung bis zu 30 Sekunden wiederverwendet werden. „Neu laden“ umgeht bereits abgeschlossene Cacheeinträge; Abmelden verwirft den zugehörigen Cache. Der Abrufzeitpunkt bezeichnet den persönlichen Plan, der Klassenvergleich kann anschließend separat geladen werden. Die Portalzugriffe derselben Sitzung laufen nacheinander. Einzelheiten zur Speicherung stehen unter [Daten und Datenschutz](#daten-und-datenschutz).
+
+Bei Ladefehlern bleibt ein bereits geladener persönlicher Plan oder Klassenplan sichtbar, mit deutlich gekennzeichnetem früherem Zeitraum und dem Hinweis, dass der Stand nicht aktuell bestätigt ist. „Erneut versuchen“ lädt die gewünschte Auswahl erneut. Ein solcher früherer Stand ersetzt keine aktuelle Prüfung im Originalportal.
 
 **Krankmeldungen:** Eine positive Erfolgsantwort wurde nicht durch einen schreibenden Live-Test verifiziert. Antworten ohne bekannten Fehler werden als „nicht eindeutig bestätigt“ behandelt. Prüfe dann den Stand im Originalportal, bevor du erneut sendest. Die lokale Sperre gegen erneutes Absenden ist kein Nachweis der Annahme und gilt nicht über Sitzungswechsel oder Serverneustarts hinweg. Schulische Meldefristen und Anforderungen bleiben bestehen.
 
@@ -95,6 +98,8 @@ Beim Produktionsbuild wird die Oberfläche unter `http://127.0.0.1:4173` ausgeli
 Ohne weitere Konfiguration meldet man sich in der Oberfläche an. Klarstunde übergibt E-Mail-Adresse und Passwort an den Originaldienst und hält dessen Sitzungs-ID im Arbeitsspeicher. Der Browser erhält ein eigenes HttpOnly-Cookie.
 
 Beim normalen Neuladen bleibt eine gültige Anmeldung bestehen. Ein Serverneustart beendet die lokalen Sitzungen. Die Standardlaufzeit beträgt acht Stunden und lässt sich über `SESSION_TTL_HOURS` anpassen.
+
+Läuft die Sitzung während der Nutzung ab, kehrt Klarstunde nach erneuter Anmeldung zum zuvor geöffneten Bereich zurück. Datum und Anzeigeoptionen des persönlichen Stundenplans bleiben dabei im Arbeitsspeicher des geöffneten Tabs erhalten; geladene Schuldaten werden beim Wechsel zur Anmeldung aus der Ansicht entfernt. Ein Neuladen oder bewusstes Abmelden setzt diese Ansichtsauswahl zurück.
 
 Für einen persönlichen Einzelplatz kann eine lokale `.env` verwendet werden:
 
@@ -175,6 +180,14 @@ Klarstunde darf nur mit einem Konto verwendet werden, für das die nutzende Pers
 Auch wiederholte Entnahmen kleiner Teile einer Datenbank können rechtlich relevant werden, wenn sie einer normalen Nutzung zuwiderlaufen oder berechtigte Interessen beeinträchtigen. Siehe [§ 87b UrhG](https://www.gesetze-im-internet.de/urhg/__87b.html). Ob die Vorschrift im Einzelfall greift, wird hier nicht bewertet.
 
 ## Projekt prüfen
+
+Alle Prüfungen lokal ausführen:
+
+```bash
+pnpm check
+```
+
+Oder einzeln:
 
 ```bash
 pnpm lint

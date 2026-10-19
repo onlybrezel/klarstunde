@@ -59,4 +59,16 @@ describe('school page parsers', () => {
     expect(pages[1]).toMatchObject({ kind: 'verification', images: [{ source: 'data:image/png;base64,cXIrLz0=', role: 'code' }] })
     expect(pages[2]).toMatchObject({ kind: 'technical', images: [{ source: 'data:image/png;base64,Z3VpZA==', role: 'code' }] })
   })
+
+  it('preserves incomplete student-card fields without inventing identity, expiry or images', () => {
+    const html = `<section class="page"><article><span>BBS-ID</span><div class="wallet-info">
+      <div class="meta"><span class="meta-label">Name</span><span class="meta-value">Alex Beispiel</span></div>
+      <div class="meta"><span class="meta-label">Geburtsdatum</span><span class="meta-value"></span></div>
+      </div><img alt="Photo" src="https://example.invalid/photo.jpg"></article></section>`
+    expect(parseStudentCard(html)).toEqual([{
+      title: 'Schülerausweis', kind: 'identity', text: 'BBS-ID Name Alex Beispiel Geburtsdatum',
+      fields: [{ label: 'Name', value: 'Alex Beispiel' }], images: [],
+    }])
+    expect(parseStudentCard('<main>Für dieses Konto kein Ausweis</main>')).toEqual([])
+  })
 })

@@ -65,7 +65,7 @@ export function Timetable({ days, labels = emptyLabels, classDays, compact = fal
   if (days.length === 0) return <div className="empty-area"><strong>Keine Einträge</strong><p>Für diesen Tag sind keine Daten vorhanden.</p></div>
 
   return (
-    <div className={`timetable-scroll ${compact ? 'compact-plan' : ''} ${comparison ? 'comparison-plan' : ''} ${days.length === 1 ? 'daily-plan' : ''}`}>
+    <div className={`timetable-scroll ${compact ? 'compact-plan' : ''} ${comparison ? 'comparison-plan' : ''} ${days.length === 1 ? 'daily-plan' : ''}`} role="region" aria-label="Stundenplan, bei Bedarf seitlich und nach unten scrollen" tabIndex={0}>
       <div className="timetable" style={{ '--day-count': days.length } as React.CSSProperties} role="table" aria-label="Stundenplan">
         <div className="period-row" role="row">
           <div className="corner-cell" role="columnheader">Stunde</div>

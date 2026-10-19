@@ -181,8 +181,14 @@ async function fetchAuthenticatedPage(upstreamSessionId: string, pathname: strin
       url = target
       continue
     }
+    if (response.status === 401) throw new UpstreamSessionExpiredError('Die Sitzung ist abgelaufen. Bitte melde dich erneut an.')
     if (!response.ok) throw new UpstreamUnavailableError(`Abruf endete mit Status ${response.status}.`)
-    return response.text()
+    const html = await response.text()
+    const $ = cheerio.load(html)
+    if ($('form').toArray().some((form) => $(form).find('input[name="MAIL"]').length && $(form).find('input[name="SCHUELERCODE"]').length)) {
+      throw new UpstreamSessionExpiredError('Die Sitzung ist abgelaufen. Bitte melde dich erneut an.')
+    }
+    return html
   }
   throw new UpstreamUnavailableError('Der Bereich enthält zu viele Weiterleitungen.')
 }

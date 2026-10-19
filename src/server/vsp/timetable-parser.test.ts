@@ -88,6 +88,17 @@ describe('parseTimetable', () => {
     ])
   })
 
+  it('keeps period zero and three parallel courses with independent changed values', () => {
+    const html = (table('Fach', ['E<br>PO<br>MAT'])
+      + table('LK', ['Kern<br>-<br><del>Alt</del><b>Neu</b>'])
+      + table('Raum', ['-<br><del>A101</del><b>B202</b><br>C303'])).replaceAll('<td>1</td>', '<td>0</td>')
+    expect(parseTimetable(html)).toEqual([
+      { period: 0, subject: 'E', teacher: 'Kern', room: '', status: 'regular' },
+      { period: 0, subject: 'PO', teacher: '', room: 'B202', previous: { room: 'A101' }, status: 'changed' },
+      { period: 0, subject: 'MAT', teacher: 'Neu', room: 'C303', previous: { teacher: 'Alt' }, status: 'changed' },
+    ])
+  })
+
   it('represents repeated holiday values once without artificial teachers and rooms', () => {
     const html = ['Fach', 'LK', 'Raum'].map((title) => table(title, ['Herbstferien', 'Herbstferien'])).join('')
     expect(parseTimetableDay(html, '2026-10-19')).toEqual({ date: '2026-10-19', lessons: [], notice: 'Herbstferien' })

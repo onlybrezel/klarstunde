@@ -466,6 +466,53 @@ button:disabled { cursor: default; opacity: .55; }
   .login-panel { padding: 42px 22px; }
 }
 
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.skip-link { position: fixed; top: 8px; left: 8px; z-index: 50; padding: 12px 18px; color: white; background: var(--forest); transform: translateY(-160%); }
+.skip-link:focus { transform: translateY(0); }
+h1[tabindex="-1"]:focus { outline: none; }
+.session-notice, .stale-plan { padding: 14px 16px; border-left: 3px solid #946a23; color: #654b21; background: #faf2df; font-size: 13px; line-height: 1.6; }
+.stale-plan { display: grid; gap: 3px; margin: 14px 0; }
+.retained-error { min-height: 0; margin-bottom: 15px; padding: 20px; }
+.card-shortcut, .card-present-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 6px; color: var(--green); background: var(--paper); font-size: 12px; cursor: pointer; }
+.card-shortcut { margin-left: auto; }
+.card-shortcut:hover, .card-present-button:hover { background: #edf4dd; }
+.timetable-scroll, .data-table-scroll { max-height: 72vh; max-height: 72dvh; overflow: auto; scroll-padding: 85px 10px 10px 65px; }
+.day-heading, .corner-cell { position: sticky; top: 0; z-index: 3; }
+.corner-cell { z-index: 4; }
+.lesson-entry, .lesson-meta span, .data-card td, .file-list a > div { min-width: 0; overflow-wrap: anywhere; }
+.lesson-meta svg { flex-shrink: 0; }
+.data-card th { z-index: 1; }
+.navigation-dialog { width: 100%; max-width: none; height: 100dvh; max-height: none; margin: 0; padding: 0; border: 0; background: transparent; }
+.navigation-dialog::backdrop, .card-presentation::backdrop { background: rgb(11 32 26 / 55%); }
+.drawer-content { position: relative; width: min(280px, 85vw); height: 100%; overflow-y: auto; background: var(--forest); }
+.drawer-content .sidebar { position: static; width: 100%; height: auto; min-height: 100%; padding-top: 65px; }
+.drawer-close { position: absolute; z-index: 1; top: 12px; right: 12px; display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid #648477; border-radius: 6px; color: white; background: transparent; cursor: pointer; }
+body:has(dialog[open]) { overflow: hidden; }
+.card-presentation { width: min(1040px, calc(100% - 32px)); max-width: none; max-height: calc(100dvh - 32px); padding: 24px; border: 1px solid var(--line); border-radius: 14px; background: var(--canvas); }
+.presentation-content { container-type: inline-size; }
+.presentation-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
+.presentation-toolbar button { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--line); border-radius: 6px; background: white; cursor: pointer; }
+.card-presentation .credential-qr { width: min(70cqi, 460px); }
+.card-presentation .credential-body { grid-template-columns: clamp(75px, 21cqi, 210px) minmax(0, 1fr); }
+.card-presentation .credential-person h2 { font-size: clamp(18px, 4.4cqi, 42px); }
+.card-presentation .credential-fields dd { font-size: clamp(11px, 2.1cqi, 19px); }
+.card-presentation .credential-code-body { padding: 24px; }
+.presentation-note { color: var(--muted); font-size: 12px; text-align: center; }
+@media (max-width: 600px) {
+  .plan-controls { position: sticky; top: 0; z-index: 5; box-shadow: 0 4px 12px rgb(18 62 50 / 8%); }
+  .week-actions button { min-width: 44px; min-height: 44px; }
+  .card-shortcut { padding: 8px; }
+  .card-shortcut span { display: none; }
+  .topbar-context { flex: 1; }
+  .topbar > .topbar-date { margin-left: 0; }
+  .topbar .card-shortcut { margin-left: auto; }
+  .student-card-toolbar { flex-wrap: wrap; gap: 10px; }
+  .card-view-switch button { padding-right: 10px; padding-left: 10px; }
+  .card-presentation { width: calc(100% - 16px); max-height: calc(100dvh - 16px); padding: 12px; }
+  .timetable-scroll { max-height: 65dvh; }
+  h1[tabindex="-1"] { scroll-margin-top: 16px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }

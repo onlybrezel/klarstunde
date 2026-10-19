@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
-import { ArrowUpRight, ChevronDown, IdCard, QrCode, RotateCcw, UserRound } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { ArrowUpRight, ChevronDown, IdCard, Maximize2, QrCode, RotateCcw, UserRound, X } from 'lucide-react'
 import type { StudentCardPage as CardPage } from '../../shared/school'
 import { getStudentCard } from '../api'
+import { keepDialogFocus } from '../dialog'
 
 function cardText(page: CardPage): string {
   const title = page.title.trim()
@@ -19,6 +20,7 @@ const demoPages: CardPage[] = [{
 
 export function StudentCardView({ pages, demo = false }: { pages: CardPage[]; demo?: boolean }) {
   const [reverse, setReverse] = useState(false)
+  const presentation = useRef<HTMLDialogElement>(null)
   const mainPage = pages.find((page) => page.kind === 'identity')
     ?? pages.find((page) => /schülerausweis|bbs-id/i.test(`${page.title} ${page.text}`)) ?? pages[0]
   if (!mainPage) return <div className="empty-area"><strong>Kein Ausweis hinterlegt</strong><p>Für dieses Konto wurde kein digitaler Schülerausweis freigegeben.</p></div>
@@ -33,16 +35,7 @@ export function StudentCardView({ pages, demo = false }: { pages: CardPage[]; de
   const unplacedImages = [...mainPage.images.filter((image) => image !== photo), ...(codePage?.images.filter((image) => !codes.includes(image)) ?? [])]
   const hasReverse = codes.length > 0 || (demo && Boolean(codePage))
 
-  return <div className="student-card-content">
-    <div className="student-card-stage">
-      <div className="student-card-toolbar">
-        <div className="card-view-switch" role="group" aria-label="Ausweisansicht">
-          <button aria-pressed={!reverse} onClick={() => setReverse(false)}>Vorderseite</button>
-          {hasReverse && <button aria-pressed={reverse} onClick={() => setReverse(true)}><QrCode size={14} />Prüfcode</button>}
-        </div>
-        {demo && <span className="demo-pill">Demo</span>}
-      </div>
-      <article className={`student-id-card ${reverse ? 'student-id-reverse' : ''} ${demo ? 'student-id-demo' : ''}`} aria-label={reverse ? 'Rückseite mit Prüfcode' : 'Vorderseite des Schülerausweises'}>
+  const card = <article className={`student-id-card ${reverse ? 'student-id-reverse' : ''} ${demo ? 'student-id-demo' : ''}`} aria-label={reverse ? 'Rückseite mit Prüfcode' : 'Vorderseite des Schülerausweises'}>
         <header className="credential-header">
           <div className="credential-school"><span>Schule</span><strong>{school || 'Schülerausweis'}</strong></div>
           <span className="credential-type"><IdCard size={18} /><span>Schülerausweis</span></span>
@@ -67,8 +60,25 @@ export function StudentCardView({ pages, demo = false }: { pages: CardPage[]; de
           {mainPage.status && <span className="credential-status" data-validity={/^gültig$/i.test(mainPage.status) ? 'valid' : /^(?:ungültig|abgelaufen)$/i.test(mainPage.status) ? 'expired' : 'unknown'}><span>{demo ? 'Beispiel' : 'Status laut Portal'}</span><strong>{mainPage.status}</strong></span>}
         </footer>
       </article>
+
+  return <div className="student-card-content">
+    <div className="student-card-stage">
+      <div className="student-card-toolbar">
+        <div className="card-view-switch" role="group" aria-label="Ausweisansicht">
+          <button aria-pressed={!reverse} onClick={() => setReverse(false)}>Vorderseite</button>
+          {hasReverse && <button aria-pressed={reverse} onClick={() => setReverse(true)}><QrCode size={14} />Prüfcode</button>}
+        </div>
+        <button className="card-present-button" onClick={() => presentation.current?.showModal()}><Maximize2 size={16} />Großansicht</button>
+      </div>
+      {card}
       {hasReverse && <button className="card-turn-button" onClick={() => setReverse((value) => !value)}><RotateCcw size={15} />{reverse ? 'Vorderseite anzeigen' : 'Prüfcode anzeigen'}</button>}
     </div>
+    <dialog ref={presentation} className="card-presentation" aria-label="Schülerausweis in Großansicht" onKeyDown={keepDialogFocus} onClick={(event) => { if (event.target === event.currentTarget) presentation.current?.close() }}>
+      <div className="presentation-content"><div className="presentation-toolbar"><strong>Schülerausweis{demo ? " · Demo" : ""}</strong><button autoFocus aria-label="Großansicht schließen" onClick={() => presentation.current?.close()}><X /></button></div>
+      {card}
+      {hasReverse && <button className="card-turn-button" onClick={() => setReverse((value) => !value)}><RotateCcw size={15} />{reverse ? "Vorderseite anzeigen" : "Prüfcode anzeigen"}</button>}
+      <p className="presentation-note">{demo ? "Beispieldaten · kein gültiger Nachweis" : "Darstellung aus dem Originalportal · Anerkennung durch die prüfende Stelle"}</p></div>
+    </dialog>
     <div className="student-card-notes"><p><QrCode size={16} />Zeige deinen Prüfcode nur, wenn ein Nachweis benötigt wird.</p><a href="https://virtueller-stundenplan.org/page2/page-22/" target="_blank" rel="noreferrer">Ausweis im Originalportal<ArrowUpRight size={15} /></a></div>
     {(extraPages.length > 0 || unplacedImages.length > 0 || (!hasReverse && codePage)) && <details className="student-card-details">
       <summary>Weitere Angaben und Nachweise<ChevronDown size={16} /></summary>
@@ -87,6 +97,7 @@ export function StudentCardPage({ demo = false }: { demo?: boolean }) {
   const [pages, setPages] = useState<CardPage[]>([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
+  const [reload, setReload] = useState(0)
 
   useEffect(() => {
     let active = true
@@ -97,12 +108,12 @@ export function StudentCardPage({ demo = false }: { demo?: boolean }) {
       .catch((reason: unknown) => { if (active) setError(reason instanceof Error ? reason.message : 'Der Ausweis konnte nicht geladen werden.') })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
-  }, [demo])
+  }, [demo, reload])
 
   return <div className="content-area student-card-page">
     <div className="area-heading"><p className="eyebrow">Dein Schulkonto</p><h1>Schülerausweis<span className="heading-dot" aria-hidden="true">.</span></h1><p>Dein Ausweis und der zugehörige Prüfcode.</p></div>
     {loading && <div className="area-loading" role="status">Ausweis wird geladen …</div>}
-    {error && <div className="state-card error-state" role="alert"><strong>Nicht verfügbar</strong><p>{error}</p></div>}
+    {error && <div className="state-card error-state" role="alert"><strong>Nicht verfügbar</strong><p>{error}</p><button onClick={() => setReload((value) => value + 1)}>Erneut versuchen</button></div>}
     {!loading && !error && <StudentCardView pages={pages} demo={demo} />}
   </div>
 }

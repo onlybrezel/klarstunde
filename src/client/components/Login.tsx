@@ -4,11 +4,12 @@ import { createSession } from '../api'
 import { Brand } from './Brand'
 
 interface LoginProps {
+  expired?: boolean
   onLogin: () => void
   onDemo: () => void
 }
 
-export function Login({ onLogin, onDemo }: LoginProps) {
+export function Login({ onLogin, onDemo, expired = false }: LoginProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -50,8 +51,9 @@ export function Login({ onLogin, onDemo }: LoginProps) {
           <span className="login-icon"><LockKeyhole size={21} /></span>
           <p className="eyebrow">Schulkonto</p>
           <h2>Anmelden</h2>
+          {expired && <p className="session-notice" role="status">Deine Sitzung ist abgelaufen. Melde dich erneut an, um zur vorherigen Ansicht zurückzukehren.</p>}
           <p className="login-hint">Verwende dieselben Zugangsdaten wie beim Virtuellen Stundenplan.</p>
-          <form onSubmit={submit}>
+          <form onSubmit={submit} aria-busy={busy}>
             <label htmlFor="email">Schul-E-Mail</label>
             <input id="email" type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@schule.de" required />
             <label htmlFor="password">Passwort</label>
