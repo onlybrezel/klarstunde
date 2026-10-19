@@ -473,6 +473,26 @@ h1[tabindex="-1"]:focus { outline: none; }
 .session-notice, .stale-plan { padding: 14px 16px; border-left: 3px solid #946a23; color: #654b21; background: #faf2df; font-size: 13px; line-height: 1.6; }
 .stale-plan { display: grid; gap: 3px; margin: 14px 0; }
 .retained-error { min-height: 0; margin-bottom: 15px; padding: 20px; }
+.error-state { gap: 14px; margin-bottom: 20px; }
+.error-state > div { min-width: 0; }
+.error-state p { margin: 8px 0 0; color: var(--muted); font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.error-state button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; font-size: 13px; }
+.error-details { width: min(100%, 560px); padding-top: 12px; border-top: 1px solid var(--line); text-align: left; }
+.error-details summary { min-height: 32px; color: var(--green); font-size: 12px; cursor: pointer; }
+.error-details label { display: grid; gap: 7px; margin: 14px 0; font-size: 12px; }
+.error-details textarea { width: 100%; min-height: 96px; padding: 10px; border: 1px solid var(--rule-dark); border-radius: 5px; color: var(--ink); background: var(--canvas); font: 12px/1.6 ui-monospace, monospace; resize: vertical; }
+.error-details > span { display: block; margin-top: 10px; color: var(--green); font-size: 12px; }
+.area-loading { align-content: center; gap: 12px; }
+.area-loading svg { animation: loading-turn 1.2s linear infinite; }
+.display-settings-panel .display-storage-note { margin: 8px 0 12px; color: var(--muted); font-size: 11px; font-weight: 400; line-height: 1.5; text-transform: none; letter-spacing: 0; }
+.display-settings-panel .reset-filters { min-height: 36px; margin-bottom: 0; }
+.content-area > .date-filter, .filter-panel { max-width: 940px; padding: 18px; border: 1px solid var(--line); border-radius: 7px; background: var(--paper); }
+.content-area > .date-filter label, .filter-panel label { min-width: 0; }
+.date-filter input, .date-filter select { max-width: 100%; }
+.empty-area { gap: 8px; }
+.empty-area p { max-width: 620px; line-height: 1.6; }
+.login-card .error-state { min-height: 0; padding: 16px; margin: 16px 0; }
+@keyframes loading-turn { to { transform: rotate(360deg); } }
 .card-shortcut, .card-present-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 6px; color: var(--green); background: var(--paper); font-size: 12px; cursor: pointer; }
 .card-shortcut { margin-left: auto; }
 .card-shortcut:hover, .card-present-button:hover { background: #edf4dd; }

@@ -1,9 +1,10 @@
+import { EmptyState } from './PageState'
 import { Download } from 'lucide-react'
 import type { SchoolTable as SchoolTableData } from '../../shared/school'
 
 export function SchoolTables({ tables, emptyText = 'Für diesen Zeitraum gibt es keine Einträge.' }: { tables: SchoolTableData[]; emptyText?: string }) {
   const visible = tables.filter((table) => table.rows.length > 0)
-  if (visible.length === 0) return <div className="empty-area"><strong>Alles ruhig</strong><p>{emptyText}</p></div>
+  if (visible.length === 0) return <EmptyState message={emptyText} />
 
   return <div className="table-stack">{visible.map((table, index) => (
     <section className="data-card" key={`${table.title}-${index}`}>

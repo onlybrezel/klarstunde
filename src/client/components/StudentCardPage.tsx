@@ -1,3 +1,5 @@
+import { loadError, type LoadError } from '../diagnostics'
+import { EmptyState, ErrorState, LoadingState, UnavailableState } from './PageState'
 import { useEffect, useRef, useState } from 'react'
 import { ArrowUpRight, ChevronDown, IdCard, Maximize2, QrCode, RotateCcw, UserRound, X } from 'lucide-react'
 import type { StudentCardPage as CardPage } from '../../shared/school'
@@ -23,7 +25,7 @@ export function StudentCardView({ pages, demo = false }: { pages: CardPage[]; de
   const presentation = useRef<HTMLDialogElement>(null)
   const mainPage = pages.find((page) => page.kind === 'identity')
     ?? pages.find((page) => /schülerausweis|bbs-id/i.test(`${page.title} ${page.text}`)) ?? pages[0]
-  if (!mainPage) return <div className="empty-area"><strong>Kein Ausweis hinterlegt</strong><p>Für dieses Konto wurde kein digitaler Schülerausweis freigegeben.</p></div>
+  if (!mainPage) return <EmptyState title="Kein Ausweis geliefert" message="Das Portal hat keine Ausweisdaten geliefert. Prüfe den Ausweis im Originalportal; die Freigabe ist daraus nicht erkennbar." />
   const school = mainPage.schoolName ?? pages.find((page) => page.kind === 'school')?.schoolName
   const nameField = mainPage.fields?.find((field) => /^Name$/i.test(field.label))
   const fields = mainPage.fields?.filter((field) => field !== nameField) ?? []
@@ -95,25 +97,26 @@ export function StudentCardView({ pages, demo = false }: { pages: CardPage[]; de
 
 export function StudentCardPage({ demo = false }: { demo?: boolean }) {
   const [pages, setPages] = useState<CardPage[]>([])
-  const [error, setError] = useState('')
+  const [unavailable, setUnavailable] = useState(false)
+  const [error, setError] = useState<LoadError>()
   const [loading, setLoading] = useState(true)
   const [reload, setReload] = useState(0)
 
   useEffect(() => {
     let active = true
     setLoading(true)
-    setError('')
+    setError(undefined)
     const pending = demo ? Promise.resolve({ pages: demoPages }) : getStudentCard()
-    pending.then((value) => { if (active) setPages(value.pages) })
-      .catch((reason: unknown) => { if (active) setError(reason instanceof Error ? reason.message : 'Der Ausweis konnte nicht geladen werden.') })
+    pending.then((value) => { if (active) { setPages(value.pages); setUnavailable('availability' in value && value.availability === 'unavailable') } })
+      .catch((reason: unknown) => { if (active) setError(loadError(reason, 'Der Ausweis konnte nicht geladen werden.')) })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [demo, reload])
 
   return <div className="content-area student-card-page">
     <div className="area-heading"><p className="eyebrow">Dein Schulkonto</p><h1>Schülerausweis<span className="heading-dot" aria-hidden="true">.</span></h1><p>Dein Ausweis und der zugehörige Prüfcode.</p></div>
-    {loading && <div className="area-loading" role="status">Ausweis wird geladen …</div>}
-    {error && <div className="state-card error-state" role="alert"><strong>Nicht verfügbar</strong><p>{error}</p><button onClick={() => setReload((value) => value + 1)}>Erneut versuchen</button></div>}
-    {!loading && !error && <StudentCardView pages={pages} demo={demo} />}
+    {loading && <LoadingState message="Ausweis wird geladen …" />}
+    {error && <ErrorState error={error} area="student-card" onRetry={() => setReload((value) => value + 1)} />}
+    {!loading && !error && (unavailable ? <UnavailableState /> : <StudentCardView pages={pages} demo={demo} />)}
   </div>
 }

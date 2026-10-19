@@ -11,6 +11,10 @@
     "lint": "eslint .",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
+    "test:ui": "pnpm build && playwright test",
+    "test:ui:install": "playwright install chromium",
+    "launch": "node scripts/start.mjs",
+    "doctor": "node scripts/start.mjs --check",
     "test:watch": "vitest"
   },
   "dependencies": {
@@ -23,6 +27,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.35.0",
+    "@playwright/test": "^1.64.1",
     "@types/express": "^5.0.3",
     "@types/node": "^24.3.0",
     "@types/react": "^19.1.12",

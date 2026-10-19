@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { parseFilters, parseOptions, parseSharedFiles, parseStudentCard, parseTables } from './school-parser.js'
+import { parseAvailability, parseFilters, parseOptions, parseSharedFiles, parseStudentCard, parseTables } from './school-parser.js'
 
 describe('school page parsers', () => {
+  it('reports availability only for explicit portal notices, never for empty or unrelated pages', () => {
+    expect(parseAvailability('<div class="alert">Dieser Bereich ist für dein Konto nicht freigeschaltet.</div>')).toEqual({ availability: 'unavailable' })
+    expect(parseAvailability('<div role="alert">Hinweis: Diese Funktion ist für Sie nicht freigeschaltet.</div>')).toEqual({ availability: 'unavailable' })
+    for (const html of ['', '<table><tr><td>Keine Einträge</td></tr></table>', '<p>Dieser Bereich ist nicht freigeschaltet.</p>', '<div class="alert">Bei Problemen kann ein Bereich nicht freigeschaltet sein.</div>', '<article class="message-card">Dieser Bereich ist nicht freigeschaltet.</article>']) expect(parseAvailability(html)).toEqual({})
+  })
   it('normalizes data tables', () => {
     const html = '<div data-title="Fehlzeiten"><table><thead><tr><th>Datum</th><th>Status</th></tr></thead><tbody><tr><th>01.09.</th><td>entschuldigt</td></tr></tbody></table></div>'
     expect(parseTables(html)).toEqual([{ title: 'Fehlzeiten', columns: ['Datum', 'Status'], rows: [['01.09.', 'entschuldigt']] }])

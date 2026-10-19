@@ -1,0 +1,156 @@
+import { test, expect, login, navigate } from './fixtures.js'
+
+test('login, date navigation and recovery keep the requested plan', async ({ page, portal }) => {
+  await login(page)
+  await page.getByRole('button', { name: 'Tag', exact: true }).click()
+  await page.getByLabel('Datum', { exact: true }).fill('2026-10-27')
+  await expect(page.locator('.day-heading')).toContainText('27.10.')
+  portal.failure = 'upstream'
+  await page.getByRole('button', { name: 'Nächster Tag', exact: true }).click()
+  await expect(page.getByRole('alert')).toContainText('Aktualisierung fehlgeschlagen')
+  await expect(page.locator('.day-heading')).toContainText('27.10.')
+  await expect(page.locator('.stale-plan')).toContainText('nicht aktuell bestätigt')
+  portal.failure = ''
+  await page.getByRole('button', { name: 'Erneut versuchen', exact: true }).click()
+  await expect(page.locator('.day-heading')).toContainText('28.10.')
+  portal.failure = 'expired'
+  await page.getByRole('button', { name: 'Neu laden', exact: true }).click()
+  await expect(page.getByText('Deine Sitzung ist abgelaufen.', { exact: false })).toBeVisible()
+  await expect(page.locator('.timetable')).toHaveCount(0)
+  portal.failure = ''
+  await page.getByLabel('Schul-E-Mail', { exact: true }).fill('beispiel@example.invalid')
+  await page.getByLabel('Passwort', { exact: true }).fill('test-only')
+  await page.getByRole('button', { name: 'Zum Stundenplan', exact: true }).click()
+  await expect(page.locator('.day-heading')).toContainText('28.10.')
+})
+
+test('display preferences survive reload and logout without persisting account data', async ({ page }) => {
+  await login(page)
+  await page.getByRole('button', { name: 'Tag', exact: true }).click()
+  await page.getByText('Ansicht', { exact: true }).click()
+  await page.getByLabel('Kompakt', { exact: true }).check()
+  await page.getByLabel('Effektiver Plan', { exact: true }).check()
+  await page.getByLabel('Mit Klassenplan vergleichen', { exact: true }).check()
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('klarstunde.display.v1')!))
+  expect(saved).toEqual({ version: 1, view: 'day', compact: true, effective: true, compare: true })
+  expect(await page.evaluate(() => Object.keys(localStorage))).toEqual(['klarstunde.display.v1'])
+  await page.reload()
+  await expect(page.getByRole('button', { name: 'Tag', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.locator('.compact-plan')).toBeVisible()
+  await navigate(page, 'Abmelden')
+  await expect(page.getByRole('button', { name: 'Zum Stundenplan', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Erst einmal ansehen', exact: true }).click()
+  await expect(page.locator('.compact-plan')).toBeVisible()
+  await page.getByText('Ansicht', { exact: true }).click()
+  await page.getByRole('button', { name: 'Ansicht zurücksetzen', exact: true }).click()
+  expect(await page.evaluate(() => localStorage.getItem('klarstunde.display.v1'))).toBeNull()
+  await expect(page.getByLabel('Kompakt', { exact: true })).not.toBeChecked()
+})
+
+test('blocked browser storage does not prevent using the plan', async ({ page }) => {
+  await page.addInitScript(() => { Object.defineProperty(window, 'localStorage', { get() { throw new Error('blocked') } }) })
+  await login(page)
+  await page.getByRole('button', { name: 'Woche', exact: true }).click()
+  await expect(page.getByText('Der Browser erlaubt das Speichern der Ansicht nicht.', { exact: false })).toBeVisible()
+  await expect(page.getByRole('table', { name: 'Stundenplan', exact: true })).toBeVisible()
+})
+
+test('error details show a safe preview and copy only the three fixed fields', async ({ page, portal }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText: async (text: string) => { (window as Window & { copied?: string }).copied = text } } })
+  })
+  await login(page)
+  portal.failure = 'upstream'
+  await page.getByRole('button', { name: 'Neu laden', exact: true }).click()
+  await page.getByText('Fehlerdetails ansehen und kopieren', { exact: true }).click()
+  const preview = page.getByLabel('Vorschau der Fehlerdetails', { exact: true })
+  await expect(preview).toHaveValue(/Bereich: plan\nFehlerkategorie: upstream/)
+  const text = await preview.inputValue()
+  expect(text.split('\n')).toHaveLength(3)
+  expect(text).not.toContain('private@example.invalid')
+  await page.getByRole('button', { name: 'Fehlerdetails kopieren', exact: true }).click()
+  expect(await page.evaluate(() => (window as Window & { copied?: string }).copied)).toBe(text)
+  portal.failure = 'network'
+  await page.getByRole('button', { name: 'Erneut versuchen', exact: true }).click()
+  await expect(page.getByRole('alert')).toContainText('Verbindung')
+})
+
+test('empty results, missing date range and explicit missing access remain distinguishable', async ({ page, portal }) => {
+  await login(page)
+  await navigate(page, 'Fehlzeiten & Noten')
+  await expect(page.getByText('Keine Einträge', { exact: true })).toBeVisible()
+  await page.getByLabel('Von', { exact: true }).fill('')
+  await expect(page.getByText('Zeitraum auswählen', { exact: true })).toBeVisible()
+  await navigate(page, 'Nachrichten')
+  await expect(page.getByText('Es wurden keine Nachrichten geliefert.', { exact: true })).toBeVisible()
+  await expect(page.getByText('Bereich nicht freigeschaltet', { exact: true })).toHaveCount(0)
+  portal.messages = true
+  await navigate(page, 'Klassenbuch')
+  await navigate(page, 'Nachrichten')
+  await expect(page.getByText('Beispielnachricht', { exact: true })).toBeVisible()
+  await expect(page.getByText('Es wurden keine Nachrichten geliefert.', { exact: true })).toHaveCount(0)
+  portal.availability = 'unavailable'
+  await navigate(page, 'Dateien')
+  await expect(page.getByText('Bereich nicht freigeschaltet', { exact: true })).toBeVisible()
+  await navigate(page, 'Klassenpläne')
+  await expect(page.getByRole('status').getByText('Klasse auswählen', { exact: true })).toBeVisible()
+})
+
+test('student card dialog preserves the original image and restores keyboard focus', async ({ page }) => {
+  await login(page)
+  await page.getByRole('button', { name: 'Schülerausweis öffnen', exact: true }).click()
+  await page.getByRole('button', { name: 'Prüfcode', exact: true }).click()
+  const original = await page.locator('.student-card-stage .credential-qr').getAttribute('src')
+  await page.getByRole('button', { name: 'Großansicht', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: 'Schülerausweis in Großansicht', exact: true })
+  await expect(dialog.locator('.credential-qr')).toHaveAttribute('src', original!)
+  const first = dialog.getByRole('button', { name: 'Großansicht schließen', exact: true })
+  await expect(first).toBeFocused()
+  await page.keyboard.press('Shift+Tab')
+  await expect(dialog.getByRole('button', { name: 'Vorderseite anzeigen', exact: true })).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(first).toBeFocused()
+  expect(await dialog.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('button', { name: 'Großansicht', exact: true })).toBeFocused()
+})
+
+test('copy fallback does not resubmit an uncertain sick note', async ({ page, portal }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText: async () => { throw new Error('clipboard blocked') } } })
+  })
+  await login(page)
+  await navigate(page, 'Krankmeldung')
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.getByRole('button', { name: 'Krankmeldung prüfen', exact: true }).click()
+  await expect(page.getByRole('alert')).toContainText('nicht eindeutig bestätigt')
+  await expect(page.getByRole('button', { name: 'Bitte im Originalportal prüfen', exact: true })).toBeDisabled()
+  await page.getByText('Fehlerdetails ansehen und kopieren', { exact: true }).click()
+  await page.getByRole('button', { name: 'Fehlerdetails kopieren', exact: true }).click()
+  await expect(page.getByText('Bitte den markierten Text selbst kopieren.', { exact: true })).toBeVisible()
+  await expect(page.getByLabel('Vorschau der Fehlerdetails', { exact: true })).toBeFocused()
+  expect(portal.requests.filter((path) => path === '/api/sick-notes')).toHaveLength(1)
+})
+
+test('navigation and long content fit the viewport; mobile menu supports Escape', async ({ page }) => {
+  const pageErrors: string[] = []
+  page.on('pageerror', (error) => pageErrors.push(error.message))
+  await login(page)
+  const menu = page.getByRole('button', { name: 'Menü öffnen', exact: true })
+  if (await menu.isVisible()) {
+    await menu.click()
+    const dialog = page.getByRole('dialog', { name: 'Hauptmenü', exact: true })
+    await expect(dialog).toBeVisible()
+    await page.keyboard.press('Shift+Tab')
+    expect(await dialog.evaluate((element) => element.contains(document.activeElement))).toBe(true)
+    await page.keyboard.press('Escape')
+    await expect(menu).toBeFocused()
+  }
+  await page.getByRole('button', { name: 'Woche', exact: true }).click()
+  await expect(page.locator('.day-heading')).toHaveCount(7)
+  const region = page.getByRole('region', { name: 'Stundenplan, bei Bedarf seitlich und nach unten scrollen', exact: true })
+  await expect(region).toBeVisible()
+  expect(await region.evaluate((element) => { element.scrollTop = 150; return Math.abs(element.querySelector('.day-heading')!.getBoundingClientRect().top - element.getBoundingClientRect().top) <= 2 })).toBe(true)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  expect(pageErrors).toEqual([])
+})

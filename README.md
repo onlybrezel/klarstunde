@@ -5,7 +5,52 @@ Klarstunde ist eine inoffizielle, lokal laufende Schüleransicht für ein eigene
 > [!IMPORTANT]
 > Dieses Repository ist ein privates Softwareexperiment. Es ist kein offizieller Client, kein Angebot einer Schule und kein Ersatz für das Originalportal. Für verbindliche Angaben zu Unterricht, Vertretungen, Fehlzeiten, Prüfungen und Krankmeldungen gilt ausschließlich der jeweilige Schuldienst.
 
-[Funktionen](#funktionen) · [Lokal starten](#lokal-starten) · [Daten und Datenschutz](#daten-und-datenschutz) · [Lizenz und Rechte](#lizenz-und-fremde-rechte)
+[Lokal starten](#lokal-starten) · [Vorschau](#vorschau) · [Funktionen](#funktionen) · [Daten und Datenschutz](#daten-und-datenschutz) · [Lizenz und Rechte](#lizenz-und-fremde-rechte)
+
+## Lokal starten
+
+Voraussetzungen für Windows und Linux: **Node.js 24 und pnpm**. Lade das Repository herunter oder klone es und öffne den Projektordner. Vor der Anmeldung mit einem Schulkonto beachte den [gedachten Einsatz](#gedachter-einsatz). Installiere einmal die Abhängigkeiten:
+
+```bash
+pnpm install
+```
+
+Danach kannst du Klarstunde über die Startdatei öffnen:
+
+| System | Start |
+| --- | --- |
+| Windows | `start.cmd` doppelt anklicken oder im Projektordner ausführen |
+| Linux | Im Projektordner `./start.sh` ausführen; alternativ `sh ./start.sh` |
+| Beide Systeme | Alternativ `pnpm launch` |
+
+Der Starter prüft Node.js, die installierten Abhängigkeiten und den lokalen Port. Falls der Build fehlt oder Quelldateien neuer sind, baut er die Oberfläche neu. Anschließend startet er den Server unter `http://127.0.0.1:4173` und öffnet den Standardbrowser. Unter Linux wird dafür `xdg-open` verwendet; ohne grafische Sitzung oder bei fehlendem Browseraufruf bleibt die Adresse zum manuellen Öffnen sichtbar.
+
+**Lass das Startfenster beziehungsweise Terminal geöffnet.** Mit `Strg+C` beendest du Klarstunde. Ein belegter Port wird gemeldet; der Starter beendet keine anderen Programme und öffnet keine unbekannte Anwendung auf diesem Port.
+
+Nur die Voraussetzungen prüfen: `pnpm doctor`. Ohne Browser starten: `pnpm launch --no-open` beziehungsweise `sh ./start.sh --no-open` unter Linux oder `start.cmd --no-open` unter Windows. Fehlen Abhängigkeiten nach einem Update, führe erneut `pnpm install` aus.
+
+Für die Entwicklung:
+
+```bash
+pnpm dev
+```
+
+Die Oberfläche läuft dann unter `http://127.0.0.1:5173`, der lokale Server unter `http://127.0.0.1:4173`.
+
+Manuell bauen und starten:
+
+```bash
+pnpm build
+pnpm start
+```
+
+Dabei wird die Oberfläche unter `http://127.0.0.1:4173` ausgeliefert. Der Server bindet standardmäßig nur an `127.0.0.1`; der Starter akzeptiert ausschließlich lokale Adressen. „Produktionsbuild“ bezeichnet die Bauart, keine Freigabe für öffentlichen Betrieb.
+
+## Vorschau
+
+![Klarstunde mit nachgebildetem Wochenplan und ausdrücklich gekennzeichneten Demo-Daten](docs/images/stundenplan-demo.png)
+
+Die Vorschau zeigt ausschließlich Beispieldaten. Über „Erst einmal ansehen“ kannst du Stundenplan und Ausweis ohne Schulkonto ausprobieren.
 
 ## Abgrenzung
 
@@ -71,35 +116,13 @@ Nicht jede Schule schaltet dieselben Funktionen frei. Getestet sind nur die Bere
 
 Eine genaue Gegenüberstellung mit den öffentlich beschriebenen Funktionen des Quelldienstes steht in [`docs/FUNCTIONS.md`](docs/FUNCTIONS.md). Sie nennt auch die beiden bewussten Grenzen: Office-365-Anmeldung und der nicht verifizierte automatische Versand an einen hinterlegten Ausbildungsbetrieb.
 
-## Lokal starten
-
-Voraussetzungen: Node.js 24 und pnpm.
-
-```bash
-pnpm install
-pnpm dev
-```
-
-Danach laufen die Oberfläche unter `http://127.0.0.1:5173` und der lokale Server unter `http://127.0.0.1:4173`.
-
-Produktionsbuild:
-
-```bash
-pnpm build
-pnpm start
-```
-
-Der Server bindet standardmäßig nur an `127.0.0.1`. Diese Voreinstellung sollte für den privaten Betrieb unverändert bleiben.
-
-Beim Produktionsbuild wird die Oberfläche unter `http://127.0.0.1:4173` ausgeliefert. „Produktionsbuild“ bezeichnet die Bauart, keine Freigabe für öffentlichen Betrieb.
-
 ## Anmeldung
 
 Ohne weitere Konfiguration meldet man sich in der Oberfläche an. Klarstunde übergibt E-Mail-Adresse und Passwort an den Originaldienst und hält dessen Sitzungs-ID im Arbeitsspeicher. Der Browser erhält ein eigenes HttpOnly-Cookie.
 
 Beim normalen Neuladen bleibt eine gültige Anmeldung bestehen. Ein Serverneustart beendet die lokalen Sitzungen. Die Standardlaufzeit beträgt acht Stunden und lässt sich über `SESSION_TTL_HOURS` anpassen.
 
-Läuft die Sitzung während der Nutzung ab, kehrt Klarstunde nach erneuter Anmeldung zum zuvor geöffneten Bereich zurück. Datum und Anzeigeoptionen des persönlichen Stundenplans bleiben dabei im Arbeitsspeicher des geöffneten Tabs erhalten; geladene Schuldaten werden beim Wechsel zur Anmeldung aus der Ansicht entfernt. Ein Neuladen oder bewusstes Abmelden setzt diese Ansichtsauswahl zurück.
+Läuft die Sitzung während der Nutzung ab, kehrt Klarstunde nach erneuter Anmeldung zum zuvor geöffneten Bereich zurück. Datum und Anzeigeoptionen des persönlichen Stundenplans bleiben dabei im Arbeitsspeicher des geöffneten Tabs erhalten; geladene Schuldaten werden beim Wechsel zur Anmeldung aus der Ansicht entfernt. Ein Neuladen oder bewusstes Abmelden setzt den geöffneten Bereich und das ausgewählte Datum zurück. Die nachfolgend beschriebenen Anzeigeoptionen bleiben erhalten.
 
 Für einen persönlichen Einzelplatz kann eine lokale `.env` verwendet werden:
 
@@ -111,6 +134,12 @@ VSP_AUTO_LOGIN_PASSWORD=dein-passwort
 Die `.env` ist von Git ausgeschlossen. Trotzdem liegt das Passwort dann unverschlüsselt auf dem Rechner. Die Datei muss nur für das eigene Benutzerkonto lesbar sein. Automatische Anmeldung gehört nicht auf gemeinsam genutzte Geräte, Server, Backups oder öffentliche Entwicklungsumgebungen.
 
 Zugangsdaten gehören nie in Issues, Screenshots, Chatverläufe, Commits oder Build-Artefakte. Ein versehentlich veröffentlichtes Passwort sollte sofort beim Originaldienst geändert werden.
+
+### Ansicht merken
+
+Tag/Woche, kompakte Ansicht, effektiver Plan und Klassenvergleich werden im Local Storage dieses Browsers unter `klarstunde.display.v1` gespeichert. Die Liste ist fest begrenzt: Datum, Konten, Passwörter, Schuldaten und Ausweisabbildungen werden darüber nicht gespeichert. Die Optionen gelten für diesen Browser und diese lokale Adresse, auch im Demo-Modus und nach dem Abmelden.
+
+Unter „Ansicht → Ansicht zurücksetzen“ lässt sich der gespeicherte Eintrag entfernen. Bei gesperrtem Browserspeicher bleibt die Anwendung nutzbar und zeigt einen Hinweis; Einstellungen gelten dann nur im geöffneten Tab.
 
 ### Kürzel je Schule
 
@@ -162,7 +191,8 @@ Klarstunde enthält keine Analyse-, Werbe- oder Tracking-Skripte. Für den besch
 | --- | --- |
 | Manuelle Anmeldung | E-Mail-Adresse und Passwort werden im lokalen Browser eingegeben und über den lokalen Server an den Originaldienst übermittelt. Klarstunde schreibt das manuell eingegebene Passwort nicht dauerhaft in eine Datei oder Datenbank. |
 | Sitzung | Die fremde Sitzungs-ID liegt im Arbeitsspeicher des Servers. Der Browser erhält stattdessen ein eigenes HttpOnly-Cookie. Die lokale Sitzung endet spätestens nach Ablauf oder Serverneustart. |
-| Schuldaten und Ausweis | Die Daten werden im Browser angezeigt und im Arbeitsspeicher verarbeitet. Die App legt dafür keine Einträge in Local Storage oder IndexedDB an. Ein kurzzeitiger Sitzungscache auf dem Server ist möglich. |
+| Schuldaten und Ausweis | Die Daten werden im Browser angezeigt und im Arbeitsspeicher verarbeitet. Die App legt für diese Inhalte keine Einträge in Local Storage oder IndexedDB an. Ein kurzzeitiger Sitzungscache auf dem Server ist möglich. |
+| Anzeigeoptionen | Vier Anzeigeoptionen und eine Formatversion liegen im Local Storage des Browsers. „Ansicht zurücksetzen“ entfernt den Eintrag. Inhalte und Anmeldedaten werden nicht mitgespeichert. |
 | Optionale Konfiguration | Eine selbst angelegte `.env` kann Zugangsdaten, Bot-Token und Chat-ID im Klartext enthalten. Auch Umgebungsvariablen sind kein verschlüsselter Passwortspeicher. |
 | Optionale Telegram-Prüfung | Vergleichsstände und Prüfzeitpunkte werden in `.data/timetable-watch.json` gespeichert. Sie bleiben auch nach dem Ausschalten der Prüfung erhalten, bis die Datei gelöscht wird. |
 | Downloads und eigene Aufnahmen | Browserfunktionen, Downloads, Screenshots und Sicherungen können Daten unabhängig von der Anwendung speichern. |
@@ -178,6 +208,12 @@ Fehlzeiten und Krankmeldungen können Gesundheitsinformationen enthalten. Auch A
 Klarstunde darf nur mit einem Konto verwendet werden, für das die nutzende Person zugriffsberechtigt ist. Die automatische Prüfung ist bewusst begrenzt und ruft Tage nacheinander ab. Kürzere Intervalle, parallele Massenabrufe, das Sammeln fremder Klassen- oder Personendaten und der Aufbau eines eigenen Datenbestands sind nicht vorgesehen.
 
 Auch wiederholte Entnahmen kleiner Teile einer Datenbank können rechtlich relevant werden, wenn sie einer normalen Nutzung zuwiderlaufen oder berechtigte Interessen beeinträchtigen. Siehe [§ 87b UrhG](https://www.gesetze-im-internet.de/urhg/__87b.html). Ob die Vorschrift im Einzelfall greift, wird hier nicht bewertet.
+
+## Fehler melden
+
+Bei einem Ladefehler kannst du „Fehlerdetails ansehen und kopieren“ öffnen. Vor dem Kopieren siehst du den vollständigen Bericht: App-Version, betroffener Bereich und eine feste Fehlerkategorie. Fehlermeldung, Datumsauswahl, Konto, Cookies, Seiteninhalte und Adressen werden nicht in diesen Bericht übernommen. Der Bericht wird nur auf deinen Klick kopiert und niemals automatisch versendet. Falls die Zwischenablage nicht zugänglich ist, kannst du den angezeigten Text selbst kopieren.
+
+Ergänze bei einer Fehlermeldung eine kurze Beschreibung der Schritte. Prüfe eigene Texte und Screenshots auf personenbezogene Daten. Eine leere Antwort wird als „keine Einträge geliefert“ angezeigt; eine fehlende Freigabe wird nur bei einem ausdrücklich erkannten Portalhinweis behauptet.
 
 ## Projekt prüfen
 
@@ -195,6 +231,17 @@ pnpm typecheck
 pnpm test
 pnpm build
 ```
+
+Die lokale Browserprüfung benötigt einmalig Chromium:
+
+```bash
+pnpm test:ui:install
+pnpm test:ui
+```
+
+Unter Linux können zusätzliche Browser-Systembibliotheken nötig sein; die Installation beschreibt die [Playwright-Dokumentation](https://playwright.dev/docs/browsers#install-system-dependencies). Die Browserprüfung baut den Client und startet eine eigene lokale Vorschau auf Port `5188`, ohne Backend-Proxy. Sie prüft Desktop, 390 und 320 Pixel Breite. Alle API-Antworten sind nachgebildet; fremde Browser-Anfragen werden blockiert. Es werden weder Schulkonten verwendet noch Krankmeldungen oder Telegram-Nachrichten versendet. Fehleraufnahmen mit diesen Beispieldaten bleiben im ignorierten Verzeichnis `.data/ui-results/`.
+
+`pnpm check` umfasst Lint, Typprüfung, kleine Tests einschließlich Starterprüfung und Build. `pnpm test:ui` wird separat lokal ausgeführt; es gibt keine GitHub Actions.
 
 Live-Zugangsdaten und unveränderte HTML-Seiten mit personenbezogenen Daten gehören nicht in Tests. Parser-Tests verwenden kleine, nachgebildete Ausschnitte.
 

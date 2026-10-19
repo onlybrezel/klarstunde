@@ -3,8 +3,8 @@ import * as cheerio from 'cheerio'
 import { ownClass, parseClassWeek, parseTimetableDay, timetableDate } from './timetable-parser.js'
 import type { TimetableDay, TimetableResponse } from '../../shared/timetable.js'
 import { germanDate, shiftDate, weekStart } from '../../shared/date.js'
-import { parseFilters, parseNotices, parseOptions, parseSharedFiles, parseStudentCard, parseTables } from './school-parser.js'
-import type { SchoolAreaResponse, SchoolFilter, SchoolOption, SharedFile, StudentCardPage } from '../../shared/school.js'
+import { parseAvailability, parseFilters, parseNotices, parseOptions, parseSharedFiles, parseStudentCard, parseTables } from './school-parser.js'
+import type { FilesResponse, SchoolAreaResponse, SchoolOption, StudentCardResponse } from '../../shared/school.js'
 
 export class UpstreamUnavailableError extends Error {}
 export class UpstreamSessionExpiredError extends UpstreamUnavailableError {}
@@ -195,16 +195,16 @@ async function fetchAuthenticatedPage(upstreamSessionId: string, pathname: strin
 
 export async function fetchSchoolArea(upstreamSessionId: string, pathname: string, parameters?: URLSearchParams): Promise<SchoolAreaResponse> {
   const html = await inSession(upstreamSessionId, () => fetchAuthenticatedPage(upstreamSessionId, pathname, parameters))
-  return { tables: parseTables(html), notices: parseNotices(html), filters: parseFilters(html) }
+  return { tables: parseTables(html), notices: parseNotices(html), filters: parseFilters(html), ...parseAvailability(html) }
 }
 
 export async function fetchClasses(upstreamSessionId: string): Promise<SchoolOption[]> {
   return parseOptions(await inSession(upstreamSessionId, () => fetchAuthenticatedPage(upstreamSessionId, '/page-5/')), 'Klasse')
 }
 
-export async function fetchFiles(upstreamSessionId: string, area?: string): Promise<{ files: SharedFile[]; filters: SchoolFilter[] }> {
+export async function fetchFiles(upstreamSessionId: string, area?: string): Promise<FilesResponse> {
   const html = await inSession(upstreamSessionId, () => fetchAuthenticatedPage(upstreamSessionId, '/page-19/', area ? new URLSearchParams({ LF: area }) : undefined))
-  return { files: parseSharedFiles(html), filters: parseFilters(html) }
+  return { files: parseSharedFiles(html), filters: parseFilters(html), ...parseAvailability(html) }
 }
 
 export async function fetchSharedFile(upstreamSessionId: string, href: string): Promise<Response> {
@@ -229,8 +229,9 @@ export async function fetchSharedFile(upstreamSessionId: string, href: string): 
   throw new UpstreamUnavailableError('Der Dateilink enthält zu viele Weiterleitungen.')
 }
 
-export async function fetchStudentCard(upstreamSessionId: string): Promise<StudentCardPage[]> {
-  return parseStudentCard(await inSession(upstreamSessionId, () => fetchAuthenticatedPage(upstreamSessionId, '/page2/page-22/')))
+export async function fetchStudentCard(upstreamSessionId: string): Promise<StudentCardResponse> {
+  const html = await inSession(upstreamSessionId, () => fetchAuthenticatedPage(upstreamSessionId, '/page2/page-22/'))
+  return { pages: parseStudentCard(html), ...parseAvailability(html) }
 }
 
 export async function submitSickNote(upstreamSessionId: string, from: string, until: string): Promise<void> {

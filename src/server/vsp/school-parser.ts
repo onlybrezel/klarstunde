@@ -7,6 +7,15 @@ function clean(value: string): string {
   return value.replace(whitespace, ' ').trim()
 }
 
+export function parseAvailability(html: string): { availability?: 'unavailable' } {
+  const $ = cheerio.load(html)
+  const explicit = $('.alert, [role="alert"]').toArray().some((element) => {
+    const text = clean($(element).text())
+    return /^(?:hinweis:?\s+)?(?:dieser bereich|diese funktion)\s+ist\s+(?:für (?:dich|sie|dein konto|ihr konto)\s+)?nicht freigeschaltet[.!]?$/i.test(text)
+  })
+  return explicit ? { availability: 'unavailable' } : {}
+}
+
 export function parseTables(html: string): SchoolTable[] {
   const $ = cheerio.load(html)
   return $('table').map((index, table) => {

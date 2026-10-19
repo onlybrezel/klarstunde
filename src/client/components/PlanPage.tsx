@@ -1,3 +1,5 @@
+import { loadError, type LoadError } from '../diagnostics'
+import { ErrorState } from './PageState'
 import { useEffect, useRef, useState } from 'react'
 import { CalendarRange, ChevronDown, ChevronLeft, ChevronRight, Info, RefreshCw, SlidersHorizontal } from 'lucide-react'
 import type { TimetableResponse } from '../../shared/timetable'
@@ -7,13 +9,13 @@ import { isoDate, weekLabel } from '../date'
 import { Timetable } from './Timetable'
 import type { PlanSettings } from '../navigation'
 
-export function PlanPage({ demo, settings: selected, onSettingsChange }: { demo: boolean; settings: PlanSettings; onSettingsChange: (settings: PlanSettings) => void }) {
+export function PlanPage({ demo, settings: selected, onSettingsChange, preferencesSaved, onResetDisplay }: { demo: boolean; settings: PlanSettings; onSettingsChange: (settings: PlanSettings) => void; preferencesSaved: boolean; onResetDisplay: () => void }) {
   const { date, view, effective, compact, compare } = selected
   const setDate = (value: string) => onSettingsChange({ ...selected, date: value })
   const [data, setData] = useState<TimetableResponse>()
   const [shown, setShown] = useState({ start: '', view, compare, effective })
   const [navigationError, setNavigationError] = useState<'previous' | 'next'>()
-  const [error, setError] = useState('')
+  const [error, setError] = useState<LoadError>()
   const [loading, setLoading] = useState(true)
   const [navigating, setNavigating] = useState(false)
   const [reload, setReload] = useState(0)
@@ -25,13 +27,13 @@ export function PlanPage({ demo, settings: selected, onSettingsChange }: { demo:
   useEffect(() => {
     const controller = new AbortController()
     setLoading(true)
-    setError('')
+    setError(undefined)
     setNavigationError(undefined)
     const refresh = forceRefresh.current
     forceRefresh.current = false
     getTimetable(start, demo, { view, effective, compare, refresh, signal: controller.signal })
       .then((result) => { if (!controller.signal.aborted) { setData(result); setShown({ start, view, compare, effective }) } })
-      .catch((reason: unknown) => { if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : 'Der Plan konnte nicht geladen werden.') })
+      .catch((reason: unknown) => { if (!controller.signal.aborted) setError(loadError(reason, 'Der Plan konnte nicht geladen werden.')) })
       .finally(() => { if (!controller.signal.aborted) setLoading(false) })
     return () => controller.abort()
   }, [start, demo, view, effective, compare, reload])
@@ -51,13 +53,13 @@ export function PlanPage({ demo, settings: selected, onSettingsChange }: { demo:
     const controller = new AbortController()
     navigation.current = controller
     setNavigating(true)
-    setError('')
+    setError(undefined)
     setNavigationError(undefined)
     try {
       const result = await getTeachingDate(date, direction, controller.signal)
       if (!controller.signal.aborted) setDate(result.date)
     } catch (reason) {
-      if (!controller.signal.aborted) { setNavigationError(direction); setError(reason instanceof Error ? reason.message : 'Die Unterrichtswoche konnte nicht geladen werden.') }
+      if (!controller.signal.aborted) { setNavigationError(direction); setError(loadError(reason, 'Die Unterrichtswoche konnte nicht geladen werden.')) }
     } finally { if (!controller.signal.aborted) setNavigating(false) }
   }
 
@@ -80,10 +82,13 @@ export function PlanPage({ demo, settings: selected, onSettingsChange }: { demo:
             <label><input type="checkbox" checked={compact} onChange={(event) => onSettingsChange({ ...selected, compact: event.target.checked })} />Kompakt</label>
             <label><input type="checkbox" checked={effective} onChange={(event) => onSettingsChange({ ...selected, effective: event.target.checked })} />Effektiver Plan</label>
             <label><input type="checkbox" checked={compare} onChange={(event) => onSettingsChange({ ...selected, compare: event.target.checked })} />Mit Klassenplan vergleichen</label>
+            <p className="display-storage-note">Diese vier Anzeigeoptionen werden in diesem Browser gemerkt.</p>
+            <button className="reset-filters" onClick={onResetDisplay}>Ansicht zurücksetzen</button>
           </div>
         </details>
       </div>
     </div>
+    {!preferencesSaved && <p className="session-notice" role="status">Der Browser erlaubt das Speichern der Ansicht nicht. Deine Auswahl gilt für diesen geöffneten Tab.</p>}
     <div className="plan-controls">
     <section className="week-toolbar" aria-label="Stundenplan-Navigation">
       <div className="week-title"><span className="calendar-symbol"><CalendarRange size={20} /></span><div><span className="toolbar-kicker">{view === 'week' ? 'Deine Woche' : 'Dein Tag'}</span><strong>{dateLabel}</strong></div>{demo && <span className="demo-pill">Demo</span>}</div>
@@ -104,7 +109,7 @@ export function PlanPage({ demo, settings: selected, onSettingsChange }: { demo:
     </div>
     <div className="plan-context"><Info size={15} /><p>{compare ? 'Persönlicher Plan und Klassenplan im Vergleich.' : 'Prüfe auch den Klassenplan. Im persönlichen Plan können Stunden fehlen.'}{effective && ' Effektiver Plan ausgewählt.'}</p></div>
     <p className="sr-only" role="status">{loading || navigating ? 'Stundenplan wird geladen.' : error ? '' : 'Stundenplan geladen.'}</p>
-    {error && <div className={`state-card error-state ${data ? 'retained-error' : ''}`} role="alert"><strong>{data ? 'Aktualisierung fehlgeschlagen' : 'Plan nicht verfügbar'}</strong><p>{error}</p><button disabled={loading || navigating} onClick={() => navigationError ? void teachingWeek(navigationError) : refresh()}>Erneut versuchen</button></div>}
+    {error && <ErrorState error={error} area="plan" title={data ? 'Aktualisierung fehlgeschlagen' : 'Plan nicht verfügbar'} retained={Boolean(data)} busy={loading || navigating} onRetry={() => navigationError ? void teachingWeek(navigationError) : refresh()} />}
     {(loading || navigating) && !data && <div className="schedule-skeleton" aria-hidden="true"><span /><span /><span /><span /></div>}
     {data && <>
       {(loading || navigating || error) && <aside className="stale-plan" role="status"><strong>{error ? 'Letzter geladener Stand · nicht aktuell bestätigt' : 'Wird aktualisiert · bisheriger Stand'}</strong><span>{shown.view === 'week' ? weekLabel(new Date(`${shown.start}T12:00:00`)) : new Date(`${shown.start}T12:00:00`).toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}{shown.effective && ' · Effektiver Plan'}{shown.compare && ' · Klassenvergleich'}</span></aside>}

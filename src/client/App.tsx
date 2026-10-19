@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { deleteSession, getSession } from './api'
 import { Dashboard } from './components/Dashboard'
 import { Login } from './components/Login'
-import { initialPlanSettings } from './navigation'
+import { initialPlanSettings, resetDisplayPreferences, saveDisplayPreferences, type PlanSettings } from './navigation'
 
 type AppState = 'loading' | 'login' | 'authenticated' | 'demo'
 
@@ -11,6 +11,13 @@ export function App() {
   const [activeArea, setActiveArea] = useState('plan')
   const [plan, setPlan] = useState(initialPlanSettings)
   const [expired, setExpired] = useState(false)
+  const [preferencesSaved, setPreferencesSaved] = useState(true)
+  function updatePlan(settings: PlanSettings) { setPlan(settings); setPreferencesSaved(saveDisplayPreferences(settings)) }
+  function resetDisplay() {
+    const result = resetDisplayPreferences()
+    setPlan({ ...result.settings, date: plan.date })
+    setPreferencesSaved(result.removed)
+  }
 
   useEffect(() => {
     getSession()
@@ -37,5 +44,5 @@ export function App() {
 
   if (state === 'loading') return <div className="app-loading" role="status" aria-label="Anmeldung wird geprüft"><span aria-hidden="true">K</span></div>
   if (state === 'login') return <Login expired={expired} onLogin={() => { setExpired(false); setState('authenticated') }} onDemo={() => { setActiveArea('plan'); setPlan(initialPlanSettings()); setExpired(false); setState('demo') }} />
-  return <Dashboard demo={state === 'demo'} onLogout={logout} activeArea={activeArea} onNavigate={setActiveArea} plan={plan} onPlanChange={setPlan} />
+  return <Dashboard demo={state === 'demo'} onLogout={logout} activeArea={activeArea} onNavigate={setActiveArea} plan={plan} onPlanChange={updatePlan} preferencesSaved={preferencesSaved} onResetDisplay={resetDisplay} />
 }

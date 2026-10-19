@@ -1,9 +1,19 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ApiError, createSession, getSchoolArea, getTimetable } from './api'
+import { ApiError, createSession, getSchoolArea, getTimetable, InvalidResponseError } from './api'
 
 afterEach(() => vi.unstubAllGlobals())
 
 describe('browser API errors', () => {
+  it('handles a malformed error body without exposing response contents', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('null', { status: 502 })))
+    await expect(getSchoolArea('attendance', '2026-10-19', '2026-10-20', {})).rejects.toBeInstanceOf(ApiError)
+  })
+  it('replaces invalid JSON with a readable error rather than quoting page contents', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('<p>private@example.invalid</p>')))
+    const result = getSchoolArea('attendance', '2026-10-19', '2026-10-20', {})
+    await expect(result).rejects.toBeInstanceOf(InvalidResponseError)
+    await expect(result).rejects.toThrow('Die Antwort konnte nicht gelesen werden.')
+  })
   it('offers a useful connection error without reporting a logout', async () => {
     const events = new EventTarget()
     const expired = vi.fn()

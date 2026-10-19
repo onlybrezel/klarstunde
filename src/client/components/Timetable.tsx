@@ -1,6 +1,7 @@
 import { ArrowRight, DoorOpen, UserRound } from 'lucide-react'
 import type { Lesson, TimetableDay, TimetableLabels } from '../../shared/timetable'
 import { assessmentLabel, roomLabel, subjectLabel } from '../../shared/timetable-labels'
+import { EmptyState } from './PageState'
 
 function lessonClass(subject: string): string {
   const choices = ['sage', 'sand', 'blue', 'plum', 'clay']
@@ -62,7 +63,7 @@ export function Timetable({ days, labels = emptyLabels, classDays, compact = fal
     return day.lessons.filter((lesson) => lesson.period === period).map((lesson, index) => <LessonEntry lesson={lesson} labels={labels} key={`${lesson.subject}-${lesson.teacher}-${index}`} />)
   }
 
-  if (days.length === 0) return <div className="empty-area"><strong>Keine Einträge</strong><p>Für diesen Tag sind keine Daten vorhanden.</p></div>
+  if (days.length === 0) return <EmptyState title="Keine Plandaten geliefert" message="Für die gewählte Ansicht wurden keine Tage geliefert. Prüfe die Auswahl und bei Bedarf das Originalportal." />
 
   return (
     <div className={`timetable-scroll ${compact ? 'compact-plan' : ''} ${comparison ? 'comparison-plan' : ''} ${days.length === 1 ? 'daily-plan' : ''}`} role="region" aria-label="Stundenplan, bei Bedarf seitlich und nach unten scrollen" tabIndex={0}>

@@ -2,6 +2,8 @@ import { FormEvent, useState } from 'react'
 import { ArrowRight, Eye, EyeOff, LockKeyhole } from 'lucide-react'
 import { createSession } from '../api'
 import { Brand } from './Brand'
+import { loadError, type LoadError } from '../diagnostics'
+import { ErrorState } from './PageState'
 
 interface LoginProps {
   expired?: boolean
@@ -13,18 +15,18 @@ export function Login({ onLogin, onDemo, expired = false }: LoginProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [message, setMessage] = useState('')
+  const [message, setMessage] = useState<LoadError>()
   const [busy, setBusy] = useState(false)
 
   async function submit(event: FormEvent) {
     event.preventDefault()
     setBusy(true)
-    setMessage('')
+    setMessage(undefined)
     try {
       await createSession(email, password)
       onLogin()
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Die Anmeldung ist fehlgeschlagen.')
+      setMessage(loadError(error, 'Die Anmeldung ist fehlgeschlagen.'))
     } finally {
       setBusy(false)
     }
@@ -63,7 +65,7 @@ export function Login({ onLogin, onDemo, expired = false }: LoginProps) {
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
-            {message && <p className="form-error" role="alert">{message}</p>}
+            {message && <ErrorState error={message} area="login" title="Anmeldung fehlgeschlagen" />}
             <button className="primary-button" type="submit" disabled={busy}>
               {busy ? 'Anmeldung läuft …' : 'Zum Stundenplan'} <ArrowRight size={18} />
             </button>

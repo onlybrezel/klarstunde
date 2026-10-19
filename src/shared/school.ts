@@ -43,7 +43,19 @@ export interface StudentCardPage {
 }
 
 export interface SchoolAreaResponse {
+  availability?: 'unavailable'
   tables: SchoolTable[]
   notices: Notice[]
   filters: SchoolFilter[]
+}
+
+export interface FilesResponse {
+  files: SharedFile[]
+  filters: SchoolFilter[]
+  availability?: 'unavailable'
+}
+
+export interface StudentCardResponse {
+  pages: StudentCardPage[]
+  availability?: 'unavailable'
 }

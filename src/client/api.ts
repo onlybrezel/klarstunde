@@ -1,5 +1,5 @@
 import type { TimetableResponse } from '../shared/timetable'
-import type { SchoolAreaResponse, SchoolFilter, SchoolOption, SharedFile, StudentCardPage } from '../shared/school'
+import type { FilesResponse, SchoolAreaResponse, SchoolOption, StudentCardResponse } from '../shared/school'
 import type { NotificationStatus } from '../shared/notifications'
 
 interface ApiErrorBody {
@@ -11,6 +11,8 @@ export class ApiError extends Error {
     super(message)
   }
 }
+export class ConnectionError extends Error {}
+export class InvalidResponseError extends Error {}
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(path, {
@@ -18,15 +20,16 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     headers: { 'content-type': 'application/json', ...options?.headers },
   }).catch((error: unknown) => {
     if (options?.signal?.aborted) throw error
-    throw new Error('Die Verbindung ist unterbrochen. Prüfe deine Verbindung und ob Klarstunde noch läuft. Versuche es anschließend erneut.')
+    throw new ConnectionError('Die Verbindung ist unterbrochen. Prüfe deine Verbindung und ob Klarstunde noch läuft. Versuche es anschließend erneut.')
   })
   if (!response.ok) {
     if (response.status === 401 && path !== '/api/session') window.dispatchEvent(new Event('session-expired'))
-    const body = await response.json().catch(() => ({})) as ApiErrorBody
-    throw new ApiError(body.message ?? 'Etwas ist schiefgelaufen.', response.status)
+    const value: unknown = await response.json().catch(() => ({}))
+    const body: ApiErrorBody = value && typeof value === 'object' ? value : {}
+    throw new ApiError(typeof body.message === 'string' ? body.message : 'Der Bereich konnte nicht geladen werden. Bitte versuche es erneut.', response.status)
   }
   if (response.status === 204) return undefined as T
-  return response.json() as Promise<T>
+  return response.json().catch(() => { throw new InvalidResponseError('Die Antwort konnte nicht gelesen werden. Bitte lade den Bereich erneut.') }) as Promise<T>
 }
 
 export function getSession(): Promise<{ authenticated: boolean; automatic?: boolean }> {
@@ -74,11 +77,11 @@ export function getClassTimetable(className: string, start: string, effective = 
   return request(`/api/class-timetable?${new URLSearchParams({ class: className, start, effective: effective ? '1' : '0' })}`, { signal })
 }
 
-export function getFiles(area = ''): Promise<{ files: SharedFile[]; filters: SchoolFilter[] }> {
+export function getFiles(area = ''): Promise<FilesResponse> {
   return request(`/api/files${area ? `?${new URLSearchParams({ area })}` : ''}`)
 }
 
-export function getStudentCard(): Promise<{ pages: StudentCardPage[] }> {
+export function getStudentCard(): Promise<StudentCardResponse> {
   return request('/api/student-card')
 }
 

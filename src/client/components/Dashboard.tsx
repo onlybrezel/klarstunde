@@ -17,9 +17,11 @@ interface DashboardProps {
   onNavigate: (area: string) => void
   plan: PlanSettings
   onPlanChange: (settings: PlanSettings) => void
+  preferencesSaved: boolean
+  onResetDisplay: () => void
 }
 
-export function Dashboard({ demo, onLogout, activeArea, onNavigate, plan, onPlanChange }: DashboardProps) {
+export function Dashboard({ demo, onLogout, activeArea, onNavigate, plan, onPlanChange, preferencesSaved, onResetDisplay }: DashboardProps) {
   const drawer = useRef<HTMLDialogElement>(null)
   const menuButton = useRef<HTMLButtonElement>(null)
   const main = useRef<HTMLElement>(null)
@@ -51,7 +53,7 @@ export function Dashboard({ demo, onLogout, activeArea, onNavigate, plan, onPlan
           <div className="topbar-date"><span>{new Date().toLocaleDateString('de-DE', { weekday: 'long' })}</span>{new Date().toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
         </header>
 
-        {activeArea === 'plan' && <PlanPage demo={demo} settings={plan} onSettingsChange={onPlanChange} />}
+        {activeArea === 'plan' && <PlanPage demo={demo} settings={plan} onSettingsChange={onPlanChange} preferencesSaved={preferencesSaved} onResetDisplay={onResetDisplay} />}
         {activeArea === 'attendance' && <AreaPage area="attendance" title="Fehlzeiten, Klausuren & Noten" description="Deine Einträge aus dem Virtuellen Klassenbuch im gewählten Zeitraum." note="Ausbildungsbetriebe können Fehlzeiten ebenfalls einsehen und dich darüber entschuldigen, wenn deine Schule diese Funktion nutzt." />}
         {activeArea === 'homework' && <AreaPage area="homework" title="Klassenbuch & Hausaufgaben" description="Unterrichtsinhalte und Aufgaben aus deinen Kursen." note="Die Einträge werden von deinen Lehrkräften geführt. Mit dem Zeitraum kannst du vergangene Inhalte und kommende Aufgaben eingrenzen." />}
         {activeArea === 'messages' && <AreaPage area="messages" title="Nachrichten" description="Mitteilungen deiner Schule und deiner Klasse." note="Hier erscheinen sowohl allgemeine Schulnachrichten als auch Hinweise, die nur für deine Klasse bestimmt sind." />}

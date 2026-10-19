@@ -2,11 +2,11 @@ import { createServer, type Server } from 'node:http'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { app } from './index.js'
 import { config } from './config.js'
-import { fetchTimetable, login, SickNoteUncertainError, submitSickNote } from './vsp/client.js'
+import { fetchFiles, fetchSchoolArea, fetchStudentCard, fetchTimetable, login, SickNoteUncertainError, submitSickNote } from './vsp/client.js'
 
 vi.mock('./vsp/client.js', async (original) => {
   const actual = await original<typeof import('./vsp/client.js')>()
-  return { ...actual, login: vi.fn(), fetchTimetable: vi.fn(), submitSickNote: vi.fn() }
+  return { ...actual, login: vi.fn(), fetchTimetable: vi.fn(), submitSickNote: vi.fn(), fetchFiles: vi.fn(), fetchSchoolArea: vi.fn(), fetchStudentCard: vi.fn() }
 })
 
 let server: Server
@@ -28,6 +28,19 @@ beforeAll(async () => {
 afterAll(async () => { await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve())) })
 
 describe('local API validation and writes', () => {
+  it('preserves explicit availability hints and the student-card response shape', async () => {
+    const studentCard = { pages: [], availability: 'unavailable' as const }
+    const files = { files: [], filters: [], availability: 'unavailable' as const }
+    const area = { tables: [], notices: [], filters: [], availability: 'unavailable' as const }
+    vi.mocked(fetchStudentCard).mockResolvedValue(studentCard)
+    vi.mocked(fetchFiles).mockResolvedValue(files)
+    vi.mocked(fetchSchoolArea).mockResolvedValue(area)
+    for (const [route, expected] of [['student-card', studentCard], ['files', files], ['messages', area]] as const) {
+      const response = await fetch(`${base}/api/${route}`, { headers: { cookie } })
+      expect(response.status).toBe(200)
+      expect(await response.json()).toEqual(expected)
+    }
+  })
   it('rejects impossible and reversed dates before contacting the portal', async () => {
     const invalid = await fetch(`${base}/api/timetable?start=2026-02-30`, { headers: { cookie } })
     expect(invalid.status).toBe(400)

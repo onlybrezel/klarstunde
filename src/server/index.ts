@@ -257,7 +257,7 @@ app.get('/api/files/open', async (request, response) => {
 app.get('/api/student-card', async (request, response) => {
   const session = authenticatedSession(request, response)
   if (!session) return
-  try { response.json({ pages: await fetchStudentCard(session) }) } catch (error) { areaError(response, error) }
+  try { response.json(await fetchStudentCard(session)) } catch (error) { areaError(response, error) }
 })
 
 const sickNotesInFlight = new Set<string>()

@@ -169,3 +169,14 @@ Die Haftungsausschlüsse der MIT-Lizenz gelten nur im rechtlich zulässigen Umfa
 - Datums- und Stundenplanregeln zentral halten
 - Features nur nach realer Prüfung des Quelldiensts veröffentlichen
 - Quellwebsite schonend abrufen: parallele Wochenabfrage begrenzen und später kurzzeitig cachen
+
+
+## Lokaler Start und Bedienungsprüfung
+
+`start.cmd` unter Windows und `start.sh` unter Linux verwenden gemeinsam `scripts/start.mjs`. Der Starter prüft Node.js 24, Abhängigkeiten, lokale Bindung und Portverfügbarkeit. Er verwendet einen vorhandenen aktuellen Build oder baut lokal neu und öffnet anschließend den Standardbrowser. Ohne grafische Sitzung ist ein Start mit `--no-open` möglich. Er beendet keine fremden Prozesse und installiert keine Abhängigkeiten automatisch.
+
+Die vier Anzeigeoptionen des persönlichen Stundenplans werden über eine feste Liste mit Formatversion im Local Storage gespeichert. Konten, Datum, Schuldaten und Ausweisinhalte gehören nicht in diesen Speicher. Die Rückkehr zur vorherigen Ansicht nach Sitzungsablauf verwendet zusätzlich nur den Zustand des geöffneten Tabs. „Ansicht zurücksetzen“ entfernt den gespeicherten Eintrag.
+
+Gemeinsame Komponenten unterscheiden Ladezustand, fehlende Auswahl, leere Ergebnisse, ausdrücklich erkannte fehlende Freigabe und Ladefehler. Der optionale kopierbare Fehlerbericht enthält ausschließlich Version, Bereich und Fehlerkategorie aus festen Wertelisten. Es erfolgt kein automatischer Versand.
+
+Die Playwright-Prüfung wird lokal über `pnpm test:ui` ausgeführt. Eine separate Vorschau ohne Backend-Proxy, vollständig nachgebildete API-Antworten und das Blockieren externer Browser-Anfragen trennen sie von echten Schulkonten. Desktop sowie zwei Mobilbreiten werden geprüft. `pnpm check` enthält die übrigen lokalen Prüfungen einschließlich Startertests; es gibt keine GitHub Actions.

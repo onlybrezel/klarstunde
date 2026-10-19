@@ -1,3 +1,5 @@
+import { loadError, type LoadError } from '../diagnostics'
+import { EmptyState, ErrorState, LoadingState, UnavailableState } from './PageState'
 import { useEffect, useState } from 'react'
 import { SlidersHorizontal } from 'lucide-react'
 import type { SchoolAreaResponse, SchoolFilter } from '../../shared/school'
@@ -33,26 +35,27 @@ export function AreaPage({ area, title, description, note }: AreaPageProps) {
   const [filters, setFilters] = useState<Record<string, string>>((): Record<string, string> => area === 'block-plans' ? { Schuljahr: String(today.getFullYear()) } : {})
   const [onlyAbsences, setOnlyAbsences] = useState(false)
   const [data, setData] = useState<SchoolAreaResponse>()
-  const [error, setError] = useState('')
+  const [error, setError] = useState<LoadError>()
   const [loading, setLoading] = useState(true)
   const [reload, setReload] = useState(0)
 
   useEffect(() => {
     const ranged = area === 'attendance' || area === 'homework'
+    if (ranged && (!from || !until)) { setLoading(false); setError(undefined); setData(undefined); return }
     if (ranged && (!isIsoDate(from) || !isIsoDate(until) || from > until)) {
       setLoading(false)
-      setError('Bitte wähle einen gültigen Zeitraum. Das Enddatum darf nicht vor dem Startdatum liegen.')
+      setError({ message: 'Bitte wähle einen gültigen Zeitraum. Das Enddatum darf nicht vor dem Startdatum liegen.', category: 'invalid-input' })
       return
     }
     let active = true
     const controller = new AbortController()
     setLoading(true)
-    setError('')
+    setError(undefined)
     const timer = window.setTimeout(() => {
       const promise = area === 'attendance' || area === 'homework'
         ? getSchoolArea(area, from, until, filters, onlyAbsences, controller.signal)
         : getSimpleArea(area, filters, controller.signal)
-      promise.then((value) => { if (active) setData(value) }).catch((reason: unknown) => { if (active) setError(reason instanceof Error ? reason.message : 'Der Bereich konnte nicht geladen werden.') }).finally(() => { if (active) setLoading(false) })
+      promise.then((value) => { if (active) setData(value) }).catch((reason: unknown) => { if (active) setError(loadError(reason, 'Der Bereich konnte nicht geladen werden.')) }).finally(() => { if (active) setLoading(false) })
     }, 250)
     return () => { active = false; window.clearTimeout(timer); controller.abort() }
   }, [area, filters, from, onlyAbsences, until, reload])
@@ -90,8 +93,9 @@ export function AreaPage({ area, title, description, note }: AreaPageProps) {
       {activeFilterCount > 0 && <button className="reset-filters" type="button" onClick={() => { setFilters({}); setOnlyAbsences(false) }}>Filter zurücksetzen</button>}
     </details>}
 
-    {loading && <div className="area-loading" role="status">Daten werden geladen …</div>}
-    {error && <div className="state-card error-state" role="alert"><strong>Nicht verfügbar</strong><p>{error}</p><button onClick={() => setReload((value) => value + 1)}>Erneut versuchen</button></div>}
-    {!loading && !error && data && <><div className="notice-stack">{data.notices.map((notice, index) => <article key={index}><strong>{notice.title}</strong><p>{notice.body}</p></article>)}</div><SchoolTables tables={data.tables} /></>}
+    {loading && <LoadingState />}
+    {!loading && (area === 'attendance' || area === 'homework') && (!from || !until) && <EmptyState title="Zeitraum auswählen" message="Wähle ein Start- und Enddatum, um die Einträge zu laden." />}
+    {error && <ErrorState error={error} area={area} onRetry={() => setReload((value) => value + 1)} />}
+    {!loading && !error && data && (data.availability === 'unavailable' ? <UnavailableState /> : <><div className="notice-stack">{data.notices.map((notice, index) => <article key={index}><strong>{notice.title}</strong><p>{notice.body}</p></article>)}</div>{(data.tables.some((table) => table.rows.length > 0) || data.notices.length === 0) && <SchoolTables tables={data.tables} emptyText={area === 'messages' ? 'Es wurden keine Nachrichten geliefert.' : area === 'block-plans' ? 'Für das gewählte Schuljahr wurden keine Blockpläne geliefert.' : 'Für den gewählten Zeitraum und die gesetzten Filter wurden keine Einträge geliefert.'} />}</>)}
   </div>
 }
